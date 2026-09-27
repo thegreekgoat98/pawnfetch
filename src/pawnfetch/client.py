@@ -5,7 +5,7 @@ import httpx
 from pawnfetch.models import PlayerProfile, PlayerStats
 
 BASE_URL = "https://api.chess.com/pub"
-USER_AGENT = "pawnfetch-cli (contact: your-email@example.com)"
+USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
 
 
 class ChessComError(Exception):
