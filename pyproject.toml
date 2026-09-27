@@ -1,0 +1,35 @@
+[project]
+name = "pawnfetch"
+version = "0.1.0"
+description = "Fetch and compare chess.com player profiles and stats from the command line"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Chinmoy", email = "ranjanchinmoy@gmail.com" }
+]
+keywords = ["chess", "chess.com", "cli", "chess-stats"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment :: Board Games",
+]
+dependencies = [
+    "httpx>=0.28.1",
+    "typer>=0.27.0",
+    "rich>=15.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/thegreekgoat98/pawnfetch"
+Repository = "https://github.com/thegreekgoat98/pawnfetch"
+Issues = "https://github.com/thegreekgoat98/pawnfetch/issues"
+
+[project.scripts]
+pawnfetch = "pawnfetch.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
