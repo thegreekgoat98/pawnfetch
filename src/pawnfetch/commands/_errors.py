@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import functools
-from typing import Callable, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 import typer
 from rich.console import Console
 
 from pawnfetch.client import ChessComError
 
-console = Console()
+console = Console(stderr=True)
 F = TypeVar("F", bound=Callable[..., None])
 
 

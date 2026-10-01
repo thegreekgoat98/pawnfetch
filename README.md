@@ -5,10 +5,13 @@ built on chess.com's public [PubAPI](https://www.chess.com/news/view/published-d
 
 ## Installation
 
+`pawnfetch` is not published on PyPI yet. Install the current GitHub version with
+[uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/):
+
 ```bash
-pip install pawnfetch
+uv tool install git+https://github.com/thegreekgoat98/pawnfetch.git
 # or
-uv add pawnfetch
+pipx install git+https://github.com/thegreekgoat98/pawnfetch.git
 ```
 
 ## Usage
@@ -38,6 +41,10 @@ cd pawnfetch
 uv sync
 uv run pawnfetch profile hikaru
 ```
+
+Chess.com PubAPI data may be cached for up to 12 hours and may not reflect
+recent changes immediately. Avoid parallel requests; Chess.com may rate-limit
+them with HTTP 429.
 
 Run tests:
 ```bash

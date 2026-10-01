@@ -1,16 +1,32 @@
 from __future__ import annotations
 
-from typer import Typer
+from importlib.metadata import version
+
+import typer
 
 from pawnfetch.commands.compare import show_compare
 from pawnfetch.commands.profile import show_profile
 from pawnfetch.commands.stats import show_stats
 
-app = Typer(help="Fetch and compare chess.com player data.")
+app = typer.Typer(help="Fetch and compare chess.com player data.")
+
+
+def show_version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"pawnfetch {version('pawnfetch')}")
+        raise typer.Exit()
 
 
 @app.callback()
-def main() -> None:
+def main(
+    show_version: bool = typer.Option(
+        False,
+        "--version",
+        callback=show_version_callback,
+        is_eager=True,
+        help="Show the installed version and exit.",
+    ),
+) -> None:
     """pawnfetch: look up and compare chess.com players."""
 
 

@@ -21,7 +21,7 @@ class PlayerProfile:
     is_streamer: bool = False
 
     @classmethod
-    def from_api(cls, data: dict) -> "PlayerProfile":
+    def from_api(cls, data: dict) -> PlayerProfile:
         return cls(
             username=data["username"],
             player_id=data["player_id"],
@@ -47,7 +47,7 @@ class GameTypeStats:
     draws: int = 0
 
     @classmethod
-    def from_api(cls, data: dict) -> "GameTypeStats":
+    def from_api(cls, data: dict) -> GameTypeStats:
         last = data.get("last", {})
         record = data.get("record", {})
         return cls(
@@ -68,7 +68,7 @@ class PlayerStats:
     raw: dict = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_api(cls, username: str, data: dict) -> "PlayerStats":
+    def from_api(cls, username: str, data: dict) -> PlayerStats:
         return cls(
             username=username,
             rapid=_parse_game_type(data, "chess_rapid"),
