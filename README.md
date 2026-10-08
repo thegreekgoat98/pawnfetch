@@ -5,8 +5,8 @@ built on chess.com's public [PubAPI](https://www.chess.com/news/view/published-d
 
 ## Installation
 
-Once the first release is available on PyPI, install `pawnfetch` with
-[pipx](https://pipx.pypa.io/) or [uv](https://docs.astral.sh/uv/):
+Install the latest release from PyPI with [pipx](https://pipx.pypa.io/) or
+[uv](https://docs.astral.sh/uv/):
 
 ```bash
 pipx install pawnfetch
@@ -14,7 +14,7 @@ pipx install pawnfetch
 uv tool install pawnfetch
 ```
 
-Until then, install the current version directly from GitHub:
+To install directly from GitHub instead:
 
 ```bash
 uv tool install git+https://github.com/thegreekgoat98/pawnfetch.git
