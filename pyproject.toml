@@ -30,6 +30,7 @@ Issues = "https://github.com/thegreekgoat98/pawnfetch/issues"
 
 [project.scripts]
 pawnfetch = "pawnfetch.cli:app"
+pftch = "pawnfetch.cli:app"
 
 [build-system]
 requires = ["hatchling"]
