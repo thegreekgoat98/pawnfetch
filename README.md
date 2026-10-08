@@ -5,13 +5,19 @@ built on chess.com's public [PubAPI](https://www.chess.com/news/view/published-d
 
 ## Installation
 
-`pawnfetch` is not published on PyPI yet. Install the current GitHub version with
-[uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/):
+Once the first release is available on PyPI, install `pawnfetch` with
+[pipx](https://pipx.pypa.io/) or [uv](https://docs.astral.sh/uv/):
+
+```bash
+pipx install pawnfetch
+# or
+uv tool install pawnfetch
+```
+
+Until then, install the current version directly from GitHub:
 
 ```bash
 uv tool install git+https://github.com/thegreekgoat98/pawnfetch.git
-# or
-pipx install git+https://github.com/thegreekgoat98/pawnfetch.git
 ```
 
 ## Usage
@@ -29,6 +35,12 @@ pawnfetch stats hikaru
 ### Compare two players
 ```bash
 pawnfetch compare hikaru magnuscarlsen
+```
+
+The `pftch` command is also available as a shorter alias. For example:
+
+```bash
+pftch profile hikaru
 ```
 
 ## Development
