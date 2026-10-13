@@ -26,10 +26,12 @@ def show_compare(username1: str, username2: str) -> None:
         profile2 = client.get_profile(username2)
         stats2 = client.get_stats(username2)
 
-    table = Table(title=f"{profile1.username} vs {profile2.username}")
+    name1 = escape(profile1.username)
+    name2 = escape(profile2.username)
+    table = Table(title=f"{name1} vs {name2}")
     table.add_column("")
-    table.add_column(profile1.username, justify="center")
-    table.add_column(profile2.username, justify="center")
+    table.add_column(name1, justify="center")
+    table.add_column(name2, justify="center")
 
     table.add_row("Title", profile1.title or "\u2014", profile2.title or "\u2014")
     table.add_row("Status", profile1.status, profile2.status)

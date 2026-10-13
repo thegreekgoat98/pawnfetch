@@ -17,7 +17,7 @@ def show_profile(username: str) -> None:
         profile = client.get_profile(username)
 
     table = Table(show_header=False, box=None, padding=(0, 1))
-    table.add_row("Username", profile.username)
+    table.add_row("Username", escape(profile.username))
     if profile.name:
         table.add_row("Name", escape(profile.name))
     if profile.title:
@@ -33,4 +33,6 @@ def show_profile(username: str) -> None:
     if profile.is_streamer:
         table.add_row("Streamer", "Yes")
 
-    console.print(Panel(table, title=f"chess.com/{profile.username}", border_style="green"))
+    console.print(
+        Panel(table, title=f"chess.com/{escape(profile.username)}", border_style="green")
+    )

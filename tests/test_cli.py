@@ -59,6 +59,8 @@ def test_stats_command_renders_stats():
     assert result.exit_code == 0
     assert "Blitz" in result.stdout
     assert "3000" in result.stdout
+    assert "chess.com/hikaru" in result.stdout
+    assert "escape(" not in result.stdout
 
 
 @respx.mock
@@ -79,3 +81,64 @@ def test_compare_command_fetches_both_players_and_renders_ratings():
     assert "hikaru vs magnus" in result.stdout
     assert "2800" in result.stdout
     assert "2900" in result.stdout
+
+
+@respx.mock
+def test_profile_command_prints_bracketed_text_literally():
+    respx.route(host="api.chess.com").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "username": "[b]x",
+                "player_id": 1,
+                "status": "basic",
+                "name": "Ann [/x]",
+                "location": "Bangalore [/x]",
+            },
+        )
+    )
+
+    result = runner.invoke(app, ["profile", "x"])
+
+    assert result.exit_code == 0
+    assert "chess.com/[b]x" in result.stdout
+    assert "Ann [/x]" in result.stdout
+    assert "Bangalore [/x]" in result.stdout
+
+
+@respx.mock
+def test_stats_command_prints_bracketed_username_literally():
+    respx.route(host="api.chess.com").mock(
+        return_value=httpx.Response(
+            200, json={"chess_blitz": {"last": {"rating": 3000}, "record": {}}}
+        )
+    )
+
+    result = runner.invoke(app, ["stats", "[b]x"])
+
+    assert result.exit_code == 0
+    assert "chess.com/[b]x" in result.stdout
+
+
+@respx.mock
+def test_compare_command_prints_bracketed_usernames_literally():
+    respx.route(host="api.chess.com").mock(
+        return_value=httpx.Response(
+            200, json={"username": "[b]x", "player_id": 1, "status": "basic"}
+        )
+    )
+
+    result = runner.invoke(app, ["compare", "a", "b"])
+
+    assert result.exit_code == 0
+    assert "[b]x vs [b]x" in result.stdout
+
+
+@respx.mock
+def test_error_message_prints_bracketed_username_literally():
+    respx.route(host="api.chess.com").mock(return_value=httpx.Response(404, json={}))
+
+    result = runner.invoke(app, ["profile", "[b]x"])
+
+    assert result.exit_code == 1
+    assert "'[b]x'" in result.stderr

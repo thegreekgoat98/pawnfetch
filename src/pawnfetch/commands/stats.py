@@ -23,7 +23,7 @@ def show_stats(username: str) -> None:
     with ChessComClient() as client:
         stats = client.get_stats(username)
 
-    table = Table(title=f"chess.com/escape({stats.username}) \u2014 stats")
+    table = Table(title=f"chess.com/{escape(stats.username)} \u2014 stats")
     table.add_column("Format")
     table.add_column("Rating", justify="right")
     table.add_column("W", justify="right")
