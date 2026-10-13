@@ -6,6 +6,7 @@ from typing import TypeVar
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 from pawnfetch.client import ChessComError
 
@@ -19,6 +20,6 @@ def handle_errors(func: F) -> F:
         try:
             return func(*args, **kwargs)
         except ChessComError as exc:
-            console.print(f"[red]{exc}[/red]")
+            console.print(f"[red]{escape(str(exc))}[/red]")
             raise typer.Exit(code=1)
     return wrapper  # type: ignore[return-value]

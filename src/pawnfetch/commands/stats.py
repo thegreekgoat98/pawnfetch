@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from pawnfetch.client import ChessComClient
@@ -22,7 +23,7 @@ def show_stats(username: str) -> None:
     with ChessComClient() as client:
         stats = client.get_stats(username)
 
-    table = Table(title=f"chess.com/{stats.username} \u2014 stats")
+    table = Table(title=f"chess.com/escape({stats.username}) \u2014 stats")
     table.add_column("Format")
     table.add_column("Rating", justify="right")
     table.add_column("W", justify="right")
@@ -44,7 +45,7 @@ def show_stats(username: str) -> None:
         )
 
     if not any_data:
-        console.print(f"[yellow]{username} has no recorded stats for rapid/blitz/bullet/daily chess.[/yellow]")
+        console.print(f"[yellow]{escape(username)} has no recorded stats for rapid/blitz/bullet/daily chess.[/yellow]")
         return
 
     console.print(table)

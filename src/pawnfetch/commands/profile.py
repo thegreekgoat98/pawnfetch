@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -18,12 +19,12 @@ def show_profile(username: str) -> None:
     table = Table(show_header=False, box=None, padding=(0, 1))
     table.add_row("Username", profile.username)
     if profile.name:
-        table.add_row("Name", profile.name)
+        table.add_row("Name", escape(profile.name))
     if profile.title:
         table.add_row("Title", profile.title)
     table.add_row("Status", profile.status)
     if profile.location:
-        table.add_row("Location", profile.location)
+        table.add_row("Location", escape(profile.location))
     if profile.joined:
         table.add_row("Joined", profile.joined.strftime("%d %b %Y"))
     if profile.last_online:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from pawnfetch.client import ChessComClient
@@ -34,8 +35,8 @@ def show_compare(username1: str, username2: str) -> None:
     table.add_row("Status", profile1.status, profile2.status)
     table.add_row(
         "Location",
-        profile1.location or "\u2014",
-        profile2.location or "\u2014",
+        escape(profile1.location) if profile1.location else "\u2014",
+        escape(profile2.location) if profile2.location else "\u2014",
     )
     table.add_row(
         "Joined",
