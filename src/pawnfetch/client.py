@@ -1,4 +1,5 @@
 from __future__ import annotations
+from urllib.parse import quote
 
 import httpx
 from typing_extensions import Self
@@ -7,6 +8,9 @@ from pawnfetch.models import PlayerProfile, PlayerStats
 
 BASE_URL = "https://api.chess.com/pub"
 USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
+def _slug(username: str) -> str:
+    """Normalize a username and make it safe to use as one URL path segment."""
+    return quote(username.strip().lower(), safe="")
 
 
 class ChessComError(Exception):
@@ -52,7 +56,7 @@ class ChessComClient:
         )
 
     def get_profile(self, username: str) -> PlayerProfile:
-        data = self._get(f"/player/{username.strip().lower()}")
+        data = self._get(f"/player/{_slug(username)}", username)
         try:
             return PlayerProfile.from_api(data)
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
@@ -61,7 +65,7 @@ class ChessComClient:
             ) from exc
 
     def get_stats(self, username: str) -> PlayerStats:
-        data = self._get(f"/player/{username.strip().lower()}/stats")
+        data = self._get(f"/player/{_slug(username)}/stats", username)
         try:
             return PlayerStats.from_api(username, data)
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
@@ -69,7 +73,7 @@ class ChessComClient:
                 "chess.com returned unexpected player stats."
             ) from exc
 
-    def _get(self, path: str) -> dict:
+    def _get(self, path: str, username: str) -> dict:
         try:
             response = self._client.get(f"{BASE_URL}{path}")
         except httpx.ConnectError as exc:
@@ -86,8 +90,9 @@ class ChessComClient:
             ) from exc
 
         if response.status_code == 404:
-            username = path.split("/")[2]
-            raise PlayerNotFoundError(username)
+            # username = path.split("/")[2]
+            # raise PlayerNotFoundError(username)
+            raise PlayerNotFoundError(username.strip())
         if response.status_code == 410:
             raise ChessComUnavailableError(
                 "chess.com reports that this data is permanently unavailable."
