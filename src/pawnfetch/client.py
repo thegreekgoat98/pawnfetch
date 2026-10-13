@@ -9,6 +9,8 @@ from pawnfetch.models import PlayerProfile, PlayerStats
 
 BASE_URL = "https://api.chess.com/pub"
 USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
+
+
 def _slug(username: str) -> str:
     """Normalize a username and make it safe to use as one URL path segment."""
     return quote(username.strip().lower(), safe="")
@@ -68,7 +70,7 @@ class ChessComClient:
     def get_stats(self, username: str) -> PlayerStats:
         data = self._get(f"/player/{_slug(username)}/stats", username)
         try:
-            return PlayerStats.from_api(username, data)
+            return PlayerStats.from_api(username.strip().lower(), data)
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
             raise ChessComResponseError(
                 "chess.com returned unexpected player stats."
@@ -91,8 +93,6 @@ class ChessComClient:
             ) from exc
 
         if response.status_code == 404:
-            # username = path.split("/")[2]
-            # raise PlayerNotFoundError(username)
             raise PlayerNotFoundError(username.strip())
         if response.status_code == 410:
             raise ChessComUnavailableError(

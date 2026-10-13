@@ -136,3 +136,43 @@ def test_get_profile_maps_network_errors(exception, message):
         ChessComConnectionError, match=message
     ):
         client.get_profile("hikaru")
+
+
+@pytest.mark.parametrize(
+    ("username", "raw_path"),
+    [
+        ("a/b", b"/pub/player/a%2Fb"),
+        ("a?x", b"/pub/player/a%3Fx"),
+        (" HiKaru ", b"/pub/player/hikaru"),
+    ],
+)
+@respx.mock
+def test_username_is_quoted_as_one_path_segment(username, raw_path):
+    route = respx.route(host="api.chess.com").mock(
+        return_value=httpx.Response(200, json={"username": "x", "player_id": 1})
+    )
+
+    with ChessComClient() as client:
+        client.get_profile(username)
+
+    assert route.calls.last.request.url.raw_path == raw_path
+
+
+@respx.mock
+def test_not_found_reports_the_full_original_username():
+    respx.route(host="api.chess.com").mock(return_value=httpx.Response(404, json={}))
+
+    with ChessComClient() as client, pytest.raises(PlayerNotFoundError) as error:
+        client.get_profile(" a/b ")
+
+    assert error.value.username == "a/b"
+
+
+@respx.mock
+def test_get_stats_normalizes_the_username():
+    respx.route(host="api.chess.com").mock(return_value=httpx.Response(200, json={}))
+
+    with ChessComClient() as client:
+        stats = client.get_stats(" HiKaru ")
+
+    assert stats.username == "hikaru"
