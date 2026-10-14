@@ -5,7 +5,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
-from pawnfetch.client import ChessComClient
+from pawnfetch.chesscom.client import ChessComClient
 from pawnfetch.commands._errors import handle_errors
 
 console = Console()

@@ -5,7 +5,7 @@ import httpx
 import pytest
 import respx
 
-from pawnfetch.client import (
+from pawnfetch.chesscom.client import (
     ChessComClient,
     ChessComConnectionError,
     ChessComHTTPError,

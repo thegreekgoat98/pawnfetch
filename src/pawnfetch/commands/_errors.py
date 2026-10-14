@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
-from pawnfetch.client import ChessComError
+from pawnfetch.chesscom.client import ChessComError
 
 console = Console(stderr=True)
 F = TypeVar("F", bound=Callable[..., None])
