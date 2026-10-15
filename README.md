@@ -60,6 +60,7 @@ them with HTTP 429.
 
 Run tests:
 ```bash
+uv sync --all-groups   # includes the web dependencies; web tests are skipped without them
 uv run pytest
 ```
 
@@ -67,6 +68,28 @@ Lint:
 ```bash
 uv run ruff check .
 ```
+
+### Website (work in progress)
+
+The repo also contains a FastAPI + Jinja2 + HTMX + Tailwind site in `web/`. It is not
+part of the PyPI package. To run it locally:
+
+```bash
+uv sync --group web
+uv run uvicorn web.app.main:app --reload
+```
+
+Then open http://127.0.0.1:8000. Styles are built with the
+[Tailwind standalone CLI](https://github.com/tailwindlabs/tailwindcss/releases) into
+`web/app/static/css/app.css`, which is committed:
+
+```bash
+tailwindcss -i web/app/static/css/input.css -o web/app/static/css/app.css --minify
+```
+
+## Disclaimer
+
+pawnfetch is an independent project and is not affiliated with or endorsed by Chess.com.
 
 ## License
 
