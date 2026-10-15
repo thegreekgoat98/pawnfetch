@@ -1,0 +1,80 @@
+@import "tailwindcss" source(none);
+@source "../../templates";
+@source "../js";
+
+/* Dark is the default; the light theme is opt-in via data-theme="light". */
+:root {
+  --bg: #14121a;
+  --surface: #1d1a26;
+  --surface-2: #262232;
+  --ink: #f4f1ea;
+  --muted: #a19bb0;
+  --line: #342f45;
+  --accent: #a78bfa;
+  --accent-ink: #17102b;
+  --sq-a: #2a2538;
+  --sq-b: #1d1a26;
+  --rapid: #f5b83d;
+  --blitz: #ff7a59;
+  --bullet: #38bdf8;
+  --daily: #4ade80;
+  --win: #4ade80;
+  --draw: #8d87a0;
+  --loss: #fb7185;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #f7f2e8;
+  --surface: #fffdf7;
+  --surface-2: #f0e9d8;
+  --ink: #231d33;
+  --muted: #6e6780;
+  --line: #e0d6c0;
+  --accent: #7c3aed;
+  --accent-ink: #ffffff;
+  --sq-a: #e8dcc0;
+  --sq-b: #f7f2e8;
+  --win: #16a34a;
+  --draw: #9a93ab;
+  --loss: #e11d48;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-rapid: var(--rapid);
+  --color-blitz: var(--blitz);
+  --color-bullet: var(--bullet);
+  --color-daily: var(--daily);
+  --color-win: var(--win);
+  --color-draw: var(--draw);
+  --color-loss: var(--loss);
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer components {
+  .checker {
+    background-image: repeating-conic-gradient(var(--sq-a) 0% 25%, var(--sq-b) 0% 50%);
+    background-size: 28px 28px;
+  }
+
+  .theme-icon-moon {
+    display: none;
+  }
+
+  [data-theme="light"] .theme-icon-sun {
+    display: none;
+  }
+
+  [data-theme="light"] .theme-icon-moon {
+    display: inline;
+  }
+}

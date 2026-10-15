@@ -1,0 +1,74 @@
+{% macro mode_card(label, chip, s) %}
+<article class="rounded-2xl border-2 border-ink bg-surface p-5 shadow-[5px_5px_0_0_var(--line)]">
+  <p class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+    <span class="size-3 rounded-sm {{ chip }}"></span>{{ label }}
+  </p>
+  {% if s is none or s.rating is none %}
+  <p class="mt-4 text-2xl font-black text-muted">No games yet</p>
+  {% else %}
+  {% set w = s.win_pct %}
+  {% set d = s.win_pct + s.draw_pct %}
+  <div class="mt-2 flex items-center justify-between gap-4">
+    <div class="min-w-0">
+      <p class="text-5xl font-black tabular-nums">{{ s.rating }}</p>
+      {% if s.best_rating %}
+      <p class="mt-1 text-sm text-muted">
+        {% if s.best_game_url and s.best_game_url.startswith("https://") %}
+        <a href="{{ s.best_game_url }}" rel="noopener" class="font-bold text-ink underline decoration-2 underline-offset-2 hover:text-accent">Peak {{ s.best_rating }}</a>
+        {% else %}
+        <b class="text-ink">Peak {{ s.best_rating }}</b>
+        {% endif %}
+        {% if s.best_date %}· {{ s.best_date|date_short }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+    <div class="relative size-24 shrink-0 rounded-full" role="img" aria-label="{{ '%.0f' % w }}% of games won"
+         style="background: conic-gradient(var(--win) 0 {{ '%.2f' % w }}%, var(--draw) {{ '%.2f' % w }}% {{ '%.2f' % d }}%, var(--loss) {{ '%.2f' % d }}% 100%)">
+      <div class="absolute inset-3 grid place-items-center rounded-full bg-surface text-sm font-black tabular-nums">{{ '%.0f' % w }}%</div>
+    </div>
+  </div>
+  <dl class="mt-4 grid grid-cols-3 gap-2 text-center">
+    <div class="rounded-xl bg-surface-2 py-2">
+      <dt class="flex items-center justify-center gap-1.5 text-xs font-bold text-muted"><span class="size-2 rounded-full bg-win"></span>Wins</dt>
+      <dd class="font-extrabold tabular-nums">{{ s.wins|intcomma }}</dd>
+    </div>
+    <div class="rounded-xl bg-surface-2 py-2">
+      <dt class="flex items-center justify-center gap-1.5 text-xs font-bold text-muted"><span class="size-2 rounded-full bg-draw"></span>Draws</dt>
+      <dd class="font-extrabold tabular-nums">{{ s.draws|intcomma }}</dd>
+    </div>
+    <div class="rounded-xl bg-surface-2 py-2">
+      <dt class="flex items-center justify-center gap-1.5 text-xs font-bold text-muted"><span class="size-2 rounded-full bg-loss"></span>Losses</dt>
+      <dd class="font-extrabold tabular-nums">{{ s.losses|intcomma }}</dd>
+    </div>
+  </dl>
+  {% if s.time_per_move is not none or s.timeout_percent is not none %}
+  <p class="mt-3 text-sm text-muted">
+    {% if s.time_per_move is not none %}{{ s.time_per_move|duration }} per move{% endif %}
+    {% if s.time_per_move is not none and s.timeout_percent is not none %}·{% endif %}
+    {% if s.timeout_percent is not none %}{{ s.timeout_percent }}% timeouts{% endif %}
+  </p>
+  {% endif %}
+  {% endif %}
+</article>
+{% endmacro %}
+
+{% macro player_side(profile) %}
+<a href="/player/{{ profile.username|urlencode }}" class="flex items-center gap-4 rounded-2xl border-2 border-ink bg-surface p-4 hover:border-accent">
+  {% if profile.avatar and profile.avatar.startswith("https://") %}
+  <img src="{{ profile.avatar }}" alt="" width="64" height="64" referrerpolicy="no-referrer"
+       class="size-16 shrink-0 rounded-xl border-2 border-ink bg-surface-2 object-cover">
+  {% else %}
+  <div class="checker size-16 shrink-0 rounded-xl border-2 border-ink" aria-hidden="true"></div>
+  {% endif %}
+  <div class="min-w-0">
+    <p class="truncate text-lg font-black">
+      {% if profile.title %}<span class="mr-1.5 rounded bg-rapid px-1.5 text-xs font-black text-[#1b1530]">{{ profile.title }}</span>{% endif %}{{ profile.name or profile.username }}
+    </p>
+    <p class="truncate text-sm text-muted">@{{ profile.username }}</p>
+  </div>
+</a>
+{% endmacro %}
+
+{% macro pill(text, classes="") %}
+<span class="rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-bold {{ classes }}">{{ text }}</span>
+{% endmacro %}

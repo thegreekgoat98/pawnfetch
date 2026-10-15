@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.name or profile.username }} (@{{ profile.username }}) — pawnfetch{% endblock %}
+
+{% block content %}
+{% from "_macros.html" import mode_card, pill with context %}
+<div data-player="{{ profile.username }}" class="mx-auto w-full max-w-6xl px-5 py-10">
+  <section class="rounded-3xl border-2 border-ink bg-surface p-6 shadow-[8px_8px_0_0_var(--accent)] sm:p-8">
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
+      {% if profile.avatar and profile.avatar.startswith("https://") %}
+      <img src="{{ profile.avatar }}" alt="" width="112" height="112" referrerpolicy="no-referrer"
+           class="size-28 shrink-0 rounded-2xl border-2 border-ink bg-surface-2 object-cover">
+      {% else %}
+      <div class="checker size-28 shrink-0 rounded-2xl border-2 border-ink" aria-hidden="true"></div>
+      {% endif %}
+
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          {% if profile.title %}<span class="rounded-lg bg-rapid px-2 py-0.5 text-sm font-black text-[#1b1530]">{{ profile.title }}</span>{% endif %}
+          <h1 class="break-words text-3xl font-black tracking-tight sm:text-4xl">{{ profile.name or profile.username }}</h1>
+        </div>
+        <p class="mt-1 text-muted">@{{ profile.username }}{% if profile.location %} · {{ profile.location }}{% endif %}</p>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          {% if profile.country_code %}{{ pill(profile.country_code) }}{% endif %}
+          {% if profile.status and profile.status != "basic" %}{{ pill(profile.status|capitalize, "text-accent") }}{% endif %}
+          {% if profile.league %}{{ pill(profile.league ~ " league") }}{% endif %}
+          {% if profile.is_streamer %}{{ pill("Streamer", "text-blitz") }}{% endif %}
+        </div>
+
+        <dl class="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <div><dt class="text-muted">Followers</dt><dd class="font-extrabold tabular-nums">{{ profile.followers|intcomma }}</dd></div>
+          <div><dt class="text-muted">Joined</dt><dd class="font-extrabold">{{ profile.joined|date_long }}</dd></div>
+          <div><dt class="text-muted">Last online</dt><dd class="font-extrabold">{{ profile.last_online|ago }}</dd></div>
+        </dl>
+
+        <form action="/compare" method="get" class="mt-4 flex max-w-sm gap-2">
+          <input type="hidden" name="a" value="{{ profile.username }}">
+          <label for="b" class="sr-only">Compare with</label>
+          <input id="b" name="b" type="text" required minlength="3" maxlength="25" pattern="[A-Za-z0-9_\-]{3,25}"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Compare with…"
+                 class="min-w-0 flex-1 rounded-xl border-2 border-line bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-accent">
+          <button type="submit" class="rounded-xl bg-accent px-4 py-2 text-sm font-bold text-accent-ink">VS</button>
+        </form>
+      </div>
+
+      {% if profile.url and profile.url.startswith("https://") %}
+      <a href="{{ profile.url }}" rel="noopener" class="self-start rounded-xl border-2 border-ink px-4 py-2 text-sm font-bold hover:bg-accent hover:text-accent-ink sm:self-center">
+        View on chess.com ↗
+      </a>
+      {% endif %}
+    </div>
+  </section>
+
+  <h2 class="mb-4 mt-12 text-2xl font-black tracking-tight">Ratings</h2>
+  <div class="grid gap-5 md:grid-cols-2">
+    {{ mode_card("Rapid", "bg-rapid", stats.rapid) }}
+    {{ mode_card("Blitz", "bg-blitz", stats.blitz) }}
+    {{ mode_card("Bullet", "bg-bullet", stats.bullet) }}
+    {{ mode_card("Daily", "bg-daily", stats.daily) }}
+  </div>
+
+  {% if stats.fide or stats.puzzle_rush or stats.tactics_highest %}
+  <h2 class="mb-4 mt-12 text-2xl font-black tracking-tight">More</h2>
+  <div class="grid gap-5 sm:grid-cols-3">
+    {% if stats.fide %}
+    <div class="rounded-2xl border-2 border-line bg-surface p-5">
+      <p class="text-sm font-bold uppercase tracking-wide text-muted">FIDE</p>
+      <p class="mt-1 text-4xl font-black tabular-nums">{{ stats.fide }}</p>
+    </div>
+    {% endif %}
+    {% if stats.puzzle_rush %}
+    <div class="rounded-2xl border-2 border-line bg-surface p-5">
+      <p class="text-sm font-bold uppercase tracking-wide text-muted">Puzzle Rush best</p>
+      <p class="mt-1 text-4xl font-black tabular-nums">{{ stats.puzzle_rush.score }}</p>
+      <p class="text-sm text-muted">in {{ stats.puzzle_rush.attempts }} attempts</p>
+    </div>
+    {% endif %}
+    {% if stats.tactics_highest %}
+    <div class="rounded-2xl border-2 border-line bg-surface p-5">
+      <p class="text-sm font-bold uppercase tracking-wide text-muted">Tactics peak</p>
+      <p class="mt-1 text-4xl font-black tabular-nums">{{ stats.tactics_highest }}</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
