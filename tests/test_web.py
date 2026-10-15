@@ -52,6 +52,19 @@ def test_home_renders_search_form():
     assert 'data-theme="dark"' in response.text
 
 
+def test_home_shows_real_ratings_in_featured_card():
+    response = client.get("/")
+    assert "featured player" in response.text
+    assert "3443" in response.text  # blitz rating from the fixture
+
+
+def test_home_hides_featured_card_when_chess_com_fails():
+    service.error = ChessComConnectionError("offline")
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "featured player" not in response.text
+
+
 def test_search_redirects_to_lowercase_player():
     response = client.get("/search", params={"u": " Hikaru "}, follow_redirects=False)
     assert response.status_code == 303

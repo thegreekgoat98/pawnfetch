@@ -53,7 +53,7 @@
   </section>
 
   <h2 class="mb-4 mt-12 text-2xl font-black tracking-tight">Ratings</h2>
-  <div class="grid gap-5 md:grid-cols-2">
+  <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
     {{ mode_card("Rapid", "bg-rapid", stats.rapid) }}
     {{ mode_card("Blitz", "bg-blitz", stats.blitz) }}
     {{ mode_card("Bullet", "bg-bullet", stats.bullet) }}
@@ -62,7 +62,7 @@
 
   {% if stats.fide or stats.puzzle_rush or stats.tactics_highest %}
   <h2 class="mb-4 mt-12 text-2xl font-black tracking-tight">More</h2>
-  <div class="grid gap-5 sm:grid-cols-3">
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
     {% if stats.fide %}
     <div class="rounded-2xl border-2 border-line bg-surface p-5">
       <p class="text-sm font-bold uppercase tracking-wide text-muted">FIDE</p>

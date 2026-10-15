@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -22,6 +23,7 @@ from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
 USERNAME_RE = re.compile(r"[A-Za-z0-9_-]{3,25}")
+FEATURED_PLAYERS = ("hikaru", "magnuscarlsen", "fabianocaruana", "gothamchess")
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 for _name in ("intcomma", "date_short", "date_long", "duration", "ago"):
@@ -51,6 +53,26 @@ def lookup_error(request: Request, exc: ChessComError) -> Response:
     return render_error(request, 502, "chess.com didn't answer", str(exc))
 
 
+def featured_card(service: PlayerService) -> dict | None:
+    """Today's featured player for the home page; None hides the card if chess.com is unavailable."""
+    day = datetime.now(timezone.utc).date().toordinal()
+    username = FEATURED_PLAYERS[day % len(FEATURED_PLAYERS)]
+    try:
+        data = service.get_player(username)
+    except ChessComError:
+        return None
+    modes = [m for m in (data.stats.rapid, data.stats.blitz, data.stats.bullet) if m]
+    total = sum(m.total for m in modes)
+    split = None
+    if total:
+        split = (
+            sum(m.wins for m in modes) / total * 100,
+            sum(m.draws for m in modes) / total * 100,
+            sum(m.losses for m in modes) / total * 100,
+        )
+    return {"data": data, "split": split}
+
+
 def create_app(service: PlayerService | None = None) -> FastAPI:
     player_service = service or PlayerService()
 
@@ -63,16 +85,17 @@ def create_app(service: PlayerService | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
     @app.get("/", response_class=HTMLResponse)
-    async def home(request: Request) -> Response:
-        return templates.TemplateResponse(request, "home.html")
+    def home(request: Request) -> Response:
+        return templates.TemplateResponse(request, "home.html", {"featured": featured_card(player_service)})
 
     @app.get("/search", response_model=None)
-    async def search(request: Request, u: str = "") -> Response:
+    def search(request: Request, u: str = "") -> Response:
         username = u.strip()
         if not USERNAME_RE.fullmatch(username):
             context = {
                 "query": username[:25],
                 "error": "Usernames are 3-25 characters: letters, numbers, - or _.",
+                "featured": featured_card(player_service),
             }
             return templates.TemplateResponse(request, "home.html", context, status_code=422)
         return RedirectResponse(f"/player/{username.lower()}", status_code=303)
