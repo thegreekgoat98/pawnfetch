@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import random
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -23,7 +23,20 @@ from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
 USERNAME_RE = re.compile(r"[A-Za-z0-9_-]{3,25}")
-FEATURED_PLAYERS = ("hikaru", "magnuscarlsen", "fabianocaruana", "gothamchess")
+FEATURED_PLAYERS = (
+    "hikaru",
+    "magnuscarlsen",
+    "fabianocaruana",
+    "gothamchess",
+    "anishgiri",
+    "firouzja2003",
+    "lachesisq",
+    "gmwso",
+    "nihalsarin",
+    "levonaronian",
+    "chesswarrior7197",
+    "ericrosen",
+)
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 for _name in ("intcomma", "date_short", "date_long", "duration", "ago"):
@@ -54,23 +67,25 @@ def lookup_error(request: Request, exc: ChessComError) -> Response:
 
 
 def featured_card(service: PlayerService) -> dict | None:
-    """Today's featured player for the home page; None hides the card if chess.com is unavailable."""
-    day = datetime.now(timezone.utc).date().toordinal()
-    username = FEATURED_PLAYERS[day % len(FEATURED_PLAYERS)]
-    try:
-        data = service.get_player(username)
-    except ChessComError:
-        return None
-    modes = [m for m in (data.stats.rapid, data.stats.blitz, data.stats.bullet) if m]
-    total = sum(m.total for m in modes)
-    split = None
-    if total:
-        split = (
-            sum(m.wins for m in modes) / total * 100,
-            sum(m.draws for m in modes) / total * 100,
-            sum(m.losses for m in modes) / total * 100,
-        )
-    return {"data": data, "split": split}
+    """A random featured player for the home page; None hides the card if chess.com is unavailable."""
+    for username in random.sample(FEATURED_PLAYERS, k=2):
+        try:
+            data = service.get_player(username)
+        except PlayerNotFoundError:
+            continue  # renamed or closed account: try the next candidate
+        except ChessComError:
+            return None
+        modes = [m for m in (data.stats.rapid, data.stats.blitz, data.stats.bullet) if m]
+        total = sum(m.total for m in modes)
+        split = None
+        if total:
+            split = (
+                sum(m.wins for m in modes) / total * 100,
+                sum(m.draws for m in modes) / total * 100,
+                sum(m.losses for m in modes) / total * 100,
+            )
+        return {"data": data, "split": split}
+    return None
 
 
 def create_app(service: PlayerService | None = None) -> FastAPI:

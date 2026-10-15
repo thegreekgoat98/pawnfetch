@@ -65,6 +65,22 @@ def test_home_hides_featured_card_when_chess_com_fails():
     assert "featured player" not in response.text
 
 
+def test_home_tries_another_player_when_featured_one_is_missing():
+    calls = []
+
+    class FirstMissing(FakeService):
+        def get_player(self, username):
+            calls.append(username)
+            if len(calls) == 1:
+                raise PlayerNotFoundError(username)
+            return super().get_player(username)
+
+    response = TestClient(create_app(FirstMissing())).get("/")
+    assert len(calls) == 2
+    assert calls[0] != calls[1]
+    assert "featured player" in response.text
+
+
 def test_search_redirects_to_lowercase_player():
     response = client.get("/search", params={"u": " Hikaru "}, follow_redirects=False)
     assert response.status_code == 303
