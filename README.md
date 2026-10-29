@@ -69,10 +69,10 @@ Lint:
 uv run ruff check .
 ```
 
-### Website (work in progress)
+### Website
 
-The repo also contains a FastAPI + Jinja2 + HTMX + Tailwind site in `web/`. It is not
-part of the PyPI package. To run it locally:
+The repo also contains a FastAPI + Jinja2 + HTMX + Tailwind site in `web/`, live at
+<https://pawnfetch.com>. It is not part of the PyPI package. To run it locally:
 
 ```bash
 uv sync --group web
