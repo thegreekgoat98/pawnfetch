@@ -178,8 +178,8 @@ def test_leaderboard_page_shows_podium_and_table():
 
 def test_leaderboard_marks_only_the_current_tab():
     text = client.get("/leaderboards/bughouse").text
-    assert text.count('aria-current="page"') == 1
     assert 'href="/leaderboards/bughouse" aria-current="page"' in text
+    assert 'href="/leaderboards/blitz" aria-current' not in text
 
 
 def test_player_without_name_shows_username():
@@ -202,6 +202,30 @@ def test_empty_board_shows_message():
 def test_hidden_boards_are_not_routes():
     assert client.get("/leaderboards/tactics").status_code == 404
     assert client.get("/leaderboards/nope").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("path", "active"),
+    [
+        ("/", "/"),
+        ("/player/hikaru", "/"),
+        ("/compare", "/compare"),
+        ("/compare/hikaru/magnuscarlsen", "/compare"),
+        ("/leaderboards/blitz", "/leaderboards"),
+    ],
+)
+def test_header_nav_on_every_page_marks_current_section(path, active):
+    text = client.get(path).text
+    for href in ("/", "/compare", "/leaderboards"):
+        marked = f'href="{href}" aria-current="page"' in text
+        assert marked == (href == active), href
+    assert 'aria-label="Main"' in text
+
+
+def test_header_nav_is_on_error_pages():
+    text = client.get("/nope").text
+    assert 'href="/leaderboards"' in text
+    assert 'aria-current="page"' not in text
 
 
 @pytest.mark.parametrize(
