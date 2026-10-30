@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Live chess streamers — pawnfetch{% endblock %}
+
+{% block content %}
+{% from "_macros.html" import avatar, pill with context %}
+{% set platform_names = {"twitch": "Twitch", "youtube": "YouTube", "kick": "Kick"} %}
+{% set platform_colors = {"twitch": "bg-[#9146ff] text-white", "youtube": "bg-[#ff0033] text-white"} %}
+<div class="mx-auto w-full max-w-6xl px-5 py-10">
+  <h1 class="text-4xl font-black tracking-tight sm:text-5xl">Live streamers</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    chess.com streamers broadcasting right now. Updated every few minutes.
+  </p>
+
+  <h2 class="mb-4 mt-10 flex items-center gap-3 text-2xl font-black tracking-tight">
+    <span class="relative flex size-3" aria-hidden="true">
+      <span class="absolute inline-flex size-full animate-ping rounded-full bg-loss opacity-60"></span>
+      <span class="relative inline-flex size-3 rounded-full bg-loss"></span>
+    </span>
+    Live now <span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-base tabular-nums text-muted">{{ live|length }}</span>
+  </h2>
+
+  {% if live %}
+  <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for s in live %}
+    {% set p = s.live_platform %}
+    <li class="flex flex-col rounded-2xl border-2 border-ink bg-surface p-4 shadow-[5px_5px_0_0_var(--line)]">
+      <div class="flex items-center gap-3">
+        <div class="relative shrink-0">
+          {{ avatar(s.avatar, "size-14 rounded-xl") }}
+          <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded bg-loss px-1.5 text-[10px] font-black uppercase tracking-wider text-white">Live</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <a href="/player/{{ s.username|lower|urlencode }}" class="block truncate text-lg font-black hover:text-accent">{{ s.username }}</a>
+          <div class="mt-1 flex flex-wrap gap-1.5">
+            <span class="rounded-full px-2 py-0.5 text-xs font-bold {{ platform_colors.get(p.kind, 'bg-surface-2 text-ink') }}">{{ platform_names.get(p.kind, p.kind|capitalize) }}</span>
+            {% if s.is_community %}{{ pill("Community") }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex gap-2">
+        {% if p.stream_url and p.stream_url.startswith("https://") %}
+        <a href="{{ p.stream_url }}" rel="noopener" class="flex-1 rounded-xl bg-accent px-3 py-2 text-center text-sm font-bold text-accent-ink transition hover:-translate-y-0.5">
+          Watch on {{ platform_names.get(p.kind, p.kind|capitalize) }} ↗
+        </a>
+        {% endif %}
+        <a href="/player/{{ s.username|lower|urlencode }}" class="rounded-xl border-2 border-line px-3 py-2 text-center text-sm font-bold hover:border-accent">Stats</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="rounded-2xl border-2 border-line bg-surface p-6 text-muted">
+    Nobody is live on chess.com right now. Check back in a few minutes.
+  </p>
+  {% endif %}
+
+  {% if offline %}
+  <details class="group mt-10 rounded-2xl border-2 border-line bg-surface">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-black">
+      <span>All other chess.com streamers <span class="ml-1 font-bold tabular-nums text-muted">{{ offline|length }}</span></span>
+      <span aria-hidden="true" class="text-accent transition group-open:rotate-180">▾</span>
+    </summary>
+    <ul class="flex flex-wrap gap-2 border-t-2 border-line p-5">
+      {% for s in offline %}
+      <li>
+        <a href="/player/{{ s.username|lower|urlencode }}" class="block rounded-full border-2 border-line px-3 py-1 text-sm font-semibold hover:border-accent">{{ s.username }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  <p class="mt-6 text-sm text-muted">Streamer list from chess.com. pawnfetch isn't affiliated with Twitch or YouTube.</p>
+</div>
+{% endblock %}

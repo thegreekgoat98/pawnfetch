@@ -18,6 +18,8 @@
     ("Search", "/", "bg-accent", path == "/" or path.startswith("/search") or path.startswith("/player/")),
     ("Compare", "/compare", "bg-blitz", path.startswith("/compare")),
     ("Leaderboards", "/leaderboards", "bg-daily", path.startswith("/leaderboards")),
+    ("Puzzle", "/puzzle", "bg-rapid", path.startswith("/puzzle")),
+    ("Streamers", "/streamers", "bg-loss", path.startswith("/streamers")),
   ] %}
   <header>
     <div class="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-4">
@@ -27,13 +29,13 @@
         </span>
         <span>pawn<span class="text-accent">fetch</span></span>
       </a>
-      {# On phones the nav drops to its own row under the logo; from sm up it sits beside the logo. #}
-      <nav aria-label="Main" class="order-last w-full sm:order-none sm:w-auto sm:flex-1">
-        <ul class="flex gap-1.5 overflow-x-auto">
+      {# Below lg the nav gets its own row under the logo and wraps if needed; from lg it sits beside the logo. #}
+      <nav aria-label="Main" class="order-last w-full lg:order-none lg:w-auto lg:flex-1">
+        <ul class="flex flex-wrap gap-1.5">
           {% for label, href, chip, active in nav %}
           <li>
             <a href="{{ href }}"{% if active %} aria-current="page"{% endif %}
-               class="flex items-center gap-2 whitespace-nowrap rounded-full border-2 px-3.5 py-1.5 text-sm font-bold {{ 'border-ink bg-surface text-ink' if active else 'border-transparent text-muted hover:border-line hover:text-ink' }}">
+               class="flex items-center gap-2 whitespace-nowrap rounded-full border-2 px-3 py-1.5 text-sm font-bold sm:px-3.5 {{ 'border-ink bg-surface text-ink' if active else 'border-transparent text-muted hover:border-line hover:text-ink' }}">
               <span class="size-2.5 rounded-sm {{ chip }}"></span>{{ label }}
             </a>
           </li>

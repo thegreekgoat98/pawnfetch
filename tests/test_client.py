@@ -248,3 +248,59 @@ def test_malformed_leaderboards_raise_response_error():
 
     with ChessComClient() as client, pytest.raises(ChessComResponseError):
         client.get_leaderboards()
+
+
+@respx.mock
+def test_get_streamers_parses_platforms():
+    respx.get("https://api.chess.com/pub/streamers").mock(
+        return_value=httpx.Response(200, json=load_fixture("streamers.json"))
+    )
+
+    with ChessComClient() as client:
+        streamers = {s.username: s for s in client.get_streamers()}
+
+    assert streamers["Msb2"].is_community
+    assert streamers["kingnb"].live_platform.kind == "youtube"
+    assert streamers["annacramling"].live_platform.stream_url == "https://twitch.tv/annacramling"
+    assert streamers["liveflagonly"].live_platform is None  # flagged live, but no live platform
+    assert streamers["RoadtoGMNEPAL"].live_platform is None
+
+
+def test_live_platform_prefers_the_main_one():
+    from pawnfetch.chesscom.models import Streamer
+
+    streamer = Streamer.from_api(
+        {
+            "username": "two",
+            "platforms": [
+                {"type": "youtube", "is_live": True},
+                {"type": "twitch", "is_live": True, "is_main_live_platform": True},
+            ],
+        }
+    )
+
+    assert streamer.live_platform.kind == "twitch"
+
+
+@respx.mock
+def test_get_daily_puzzle():
+    respx.get("https://api.chess.com/pub/puzzle").mock(
+        return_value=httpx.Response(200, json=load_fixture("puzzle.json"))
+    )
+
+    with ChessComClient() as client:
+        puzzle = client.get_daily_puzzle()
+
+    assert puzzle.title == "Royally Distracted"
+    assert puzzle.fen.startswith("2r1nr1k/")
+    assert "Qh4#" in puzzle.pgn
+    assert puzzle.published.year == 2026
+
+
+@respx.mock
+@pytest.mark.parametrize(("path", "method"), [("streamers", "get_streamers"), ("puzzle", "get_daily_puzzle")])
+def test_malformed_streamers_and_puzzle_raise_response_error(path, method):
+    respx.get(f"https://api.chess.com/pub/{path}").mock(return_value=httpx.Response(200, json={}))
+
+    with ChessComClient() as client, pytest.raises(ChessComResponseError):
+        getattr(client, method)()

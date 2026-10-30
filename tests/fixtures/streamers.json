@@ -1,0 +1,121 @@
+{
+  "streamers": [
+    {
+      "username": "Msb2",
+      "avatar": "https://www.chess.com/bundles/web/images/noavatar_l.84a92436.gif",
+      "twitch_url": "https://twitch.tv/keinsehrstarkerspieler",
+      "url": "https://www.chess.com/member/Msb2",
+      "is_live": true,
+      "is_community_streamer": true,
+      "platforms": [
+        {
+          "type": "twitch",
+          "stream_url": "https://twitch.tv/keinsehrstarkerspieler",
+          "channel_url": "https://twitch.tv/keinsehrstarkerspieler",
+          "is_live": true,
+          "is_main_live_platform": true
+        }
+      ]
+    },
+    {
+      "username": "annacramling",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/70349336.09d03b0c.50x50o.ba16d6a13ac9.jpg",
+      "twitch_url": "https://twitch.tv/annacramling",
+      "url": "https://www.chess.com/member/annacramling",
+      "is_live": true,
+      "is_community_streamer": false,
+      "platforms": [
+        {
+          "type": "twitch",
+          "stream_url": "https://twitch.tv/annacramling",
+          "channel_url": "https://twitch.tv/annacramling",
+          "is_live": true,
+          "is_main_live_platform": true
+        }
+      ]
+    },
+    {
+      "username": "kingnb",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/52377368.e9d76044.50x50o.c760daddf306.jpg",
+      "twitch_url": "https://www.youtube.com/watch?v=fWZ3djpZEyI",
+      "url": "https://www.chess.com/member/kingnb",
+      "is_live": true,
+      "is_community_streamer": false,
+      "platforms": [
+        {
+          "type": "youtube",
+          "stream_url": "https://www.youtube.com/watch?v=fWZ3djpZEyI",
+          "channel_url": "https://youtube.com/@kingnblive",
+          "is_live": true,
+          "is_main_live_platform": true
+        }
+      ]
+    },
+    {
+      "username": "sneakylink",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/70349336.09d03b0c.50x50o.ba16d6a13ac9.jpg",
+      "twitch_url": "https://twitch.tv/annacramling",
+      "url": "https://www.chess.com/member/annacramling",
+      "is_live": true,
+      "is_community_streamer": false,
+      "platforms": [
+        {
+          "type": "twitch",
+          "stream_url": "javascript:alert(1)",
+          "channel_url": "https://twitch.tv/annacramling",
+          "is_live": true,
+          "is_main_live_platform": true
+        }
+      ]
+    },
+    {
+      "username": "liveflagonly",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/348715097.add665f3.50x50o.72de210056a1.jpg",
+      "url": "https://www.chess.com/member/RoadtoGMNEPAL",
+      "is_live": true,
+      "is_community_streamer": false,
+      "platforms": []
+    },
+    {
+      "username": "RoadtoGMNEPAL",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/348715097.add665f3.50x50o.72de210056a1.jpg",
+      "url": "https://www.chess.com/member/RoadtoGMNEPAL",
+      "is_live": false,
+      "is_community_streamer": false,
+      "platforms": []
+    },
+    {
+      "username": "RoukMoutChess",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/189609325.ff3bdf5a.50x50o.938fcf5cf9b8.png",
+      "url": "https://www.chess.com/member/RoukMoutChess",
+      "is_live": false,
+      "is_community_streamer": false,
+      "platforms": [
+        {
+          "type": "twitch",
+          "channel_url": "https://twitch.tv/roukmoutchess",
+          "is_live": false
+        },
+        {
+          "type": "youtube",
+          "channel_url": "https://youtube.com/@roukmoutchess",
+          "is_live": false
+        }
+      ]
+    },
+    {
+      "username": "rotrik_chess",
+      "avatar": "https://images.chesscomfiles.com/uploads/v1/user/472634696.ae27a045.50x50o.d1c04b1169c7.png",
+      "url": "https://www.chess.com/member/rotrik_chess",
+      "is_live": false,
+      "is_community_streamer": false,
+      "platforms": [
+        {
+          "type": "youtube",
+          "channel_url": "https://youtube.com/@rotrik_chess",
+          "is_live": false
+        }
+      ]
+    }
+  ]
+}

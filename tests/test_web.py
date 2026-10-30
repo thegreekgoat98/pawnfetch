@@ -12,16 +12,27 @@ from pawnfetch.chesscom.client import (
     ChessComRateLimitError,
     PlayerNotFoundError,
 )
-from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import (
+    DailyPuzzle,
+    Leaderboards,
+    PlayerProfile,
+    PlayerStats,
+    Streamer,
+)
 from web.app.main import create_app
 from web.app.service import PlayerData
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+def fixture(name: str) -> dict:
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+
+
 class FakeService:
     def __init__(self):
         self.error: Exception | None = None
+        self.puzzle_override: dict | None = None
 
     def get_player(self, username: str) -> PlayerData:
         if self.error:
@@ -35,8 +46,17 @@ class FakeService:
     def get_leaderboards(self) -> Leaderboards:
         if self.error:
             raise self.error
-        data = json.loads((FIXTURES / "leaderboards.json").read_text(encoding="utf-8"))
-        return Leaderboards.from_api(data)
+        return Leaderboards.from_api(fixture("leaderboards.json"))
+
+    def get_streamers(self) -> list[Streamer]:
+        if self.error:
+            raise self.error
+        return [Streamer.from_api(s) for s in fixture("streamers.json")["streamers"]]
+
+    def get_daily_puzzle(self) -> DailyPuzzle:
+        if self.error:
+            raise self.error
+        return DailyPuzzle.from_api(self.puzzle_override or fixture("puzzle.json"))
 
     def close(self) -> None:
         pass
@@ -49,6 +69,7 @@ client = TestClient(create_app(service))
 @pytest.fixture(autouse=True)
 def _reset_service():
     service.error = None
+    service.puzzle_override = None
 
 
 def test_home_renders_search_form():
@@ -212,11 +233,13 @@ def test_hidden_boards_are_not_routes():
         ("/compare", "/compare"),
         ("/compare/hikaru/magnuscarlsen", "/compare"),
         ("/leaderboards/blitz", "/leaderboards"),
+        ("/puzzle", "/puzzle"),
+        ("/streamers", "/streamers"),
     ],
 )
 def test_header_nav_on_every_page_marks_current_section(path, active):
     text = client.get(path).text
-    for href in ("/", "/compare", "/leaderboards"):
+    for href in ("/", "/compare", "/leaderboards", "/puzzle", "/streamers"):
         marked = f'href="{href}" aria-current="page"' in text
         assert marked == (href == active), href
     assert 'aria-label="Main"' in text
@@ -226,6 +249,100 @@ def test_header_nav_is_on_error_pages():
     text = client.get("/nope").text
     assert 'href="/leaderboards"' in text
     assert 'aria-current="page"' not in text
+
+
+def test_home_links_to_every_live_feature():
+    text = client.get("/").text
+    for href in ("/compare", "/leaderboards", "/puzzle", "/streamers"):
+        assert f'href="{href}" class="after:absolute' in text, href
+
+
+def test_streamers_page_lists_live_streamers_first():
+    text = client.get("/streamers").text
+    live_section, _, offline_section = text.partition("All other chess.com streamers")
+    assert "Live now" in live_section
+    # official streamers before community ones
+    assert live_section.index("annacramling") < live_section.index("kingnb") < live_section.index("Msb2")
+    assert "Watch on YouTube" in live_section and "Watch on Twitch" in live_section
+    assert "Community" in live_section
+    assert 'href="https://twitch.tv/annacramling"' in live_section
+    assert 'href="/player/msb2"' in live_section
+    assert "RoadtoGMNEPAL" in offline_section and "liveflagonly" in offline_section
+
+
+def test_streamers_page_drops_unsafe_stream_links():
+    text = client.get("/streamers").text
+    assert "javascript:" not in text
+    assert "sneakylink" in text  # still listed, just without a Watch link
+
+
+def test_streamers_page_when_nobody_is_live(monkeypatch):
+    monkeypatch.setattr(service, "get_streamers", list)
+    assert "Nobody is live" in client.get("/streamers").text
+
+
+def test_puzzle_page_renders_a_playable_board():
+    response = client.get("/puzzle")
+    assert response.status_code == 200
+    text = response.text
+    assert "Royally Distracted" in text
+    assert "White to move" in text
+    assert text.count("data-sq=") == 64
+    assert text.split('data-sq="')[1].startswith('a8"')  # White at the bottom: a8 is top-left
+    assert 'aria-label="f4, white knight"' in text
+    assert 'id="puzzle-data"' in text and "/static/js/puzzle.js" in text
+    assert '"from": "f4"' in text and '"to": "g6"' in text
+    assert "1. Nxg6+" in text and "2. Qh4#" in text
+    assert 'href="https://www.chess.com/daily/2026-10-30"' in text
+
+
+def test_puzzle_page_flips_the_board_for_black():
+    service.puzzle_override = dict(
+        fixture("puzzle.json"), fen="4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1", pgn="1... d5 2. exd6"
+    )
+    text = client.get("/puzzle").text
+    assert "Black to move" in text
+    assert text.index('data-sq="h1"') < text.index('data-sq="a8"')
+    assert "1… d5" in text
+
+
+def test_puzzle_page_without_a_usable_solution_still_shows_the_board():
+    service.puzzle_override = dict(fixture("puzzle.json"), pgn="1. Qz9")
+    response = client.get("/puzzle")
+    assert response.status_code == 200
+    assert response.text.count("data-sq=") == 64
+    assert 'id="puzzle-data"' not in response.text
+    assert "can't be played here" in response.text
+
+
+def test_puzzle_page_with_a_broken_fen_is_an_error():
+    service.puzzle_override = dict(fixture("puzzle.json"), fen="nonsense")
+    assert client.get("/puzzle").status_code == 502
+
+
+def test_puzzle_title_is_escaped():
+    service.puzzle_override = dict(fixture("puzzle.json"), title="</script><script>alert(1)</script>")
+    text = client.get("/puzzle").text
+    assert "<script>alert(1)" not in text
+    assert "&lt;script&gt;alert(1)" in text
+
+
+@pytest.mark.parametrize("path", ["/streamers", "/puzzle"])
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [(ChessComRateLimitError("slow down"), 429), (ChessComConnectionError("offline"), 502)],
+)
+def test_streamer_and_puzzle_errors_render_error_page(path, error, status):
+    service.error = error
+    assert client.get(path).status_code == status
+
+
+def test_piece_images_and_licence_are_served():
+    for code in ("wK", "bQ", "wN", "bP"):
+        response = client.get(f"/static/pieces/{code}.svg")
+        assert response.status_code == 200
+        assert "viewBox" in response.text
+    assert "Burnett" in client.get("/static/pieces/LICENSE.txt").text
 
 
 @pytest.mark.parametrize(

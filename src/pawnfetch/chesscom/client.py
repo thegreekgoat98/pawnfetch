@@ -5,7 +5,13 @@ from urllib.parse import quote
 import httpx
 from typing_extensions import Self
 
-from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import (
+    DailyPuzzle,
+    Leaderboards,
+    PlayerProfile,
+    PlayerStats,
+    Streamer,
+)
 
 BASE_URL = "https://api.chess.com/pub"
 USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
@@ -83,6 +89,24 @@ class ChessComClient:
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
             raise ChessComResponseError(
                 "chess.com returned unexpected leaderboards."
+            ) from exc
+
+    def get_streamers(self) -> list[Streamer]:
+        data = self._get("/streamers")
+        try:
+            return [Streamer.from_api(row) for row in data["streamers"]]
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+            raise ChessComResponseError(
+                "chess.com returned an unexpected streamer list."
+            ) from exc
+
+    def get_daily_puzzle(self) -> DailyPuzzle:
+        data = self._get("/puzzle")
+        try:
+            return DailyPuzzle.from_api(data)
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+            raise ChessComResponseError(
+                "chess.com returned an unexpected daily puzzle."
             ) from exc
 
     def _get(self, path: str, username: str | None = None) -> dict:

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Daily puzzle: {{ puzzle.title }} — pawnfetch{% endblock %}
+
+{% block content %}
+{% set side = "White" if solver == "w" else "Black" %}
+<div class="mx-auto w-full max-w-6xl px-5 py-10">
+  <p class="text-sm font-bold uppercase tracking-wide text-muted">
+    Daily puzzle{% if puzzle.published %} · {{ puzzle.published|date_long }}{% endif %}
+  </p>
+  <h1 class="mt-1 text-4xl font-black tracking-tight sm:text-5xl">{{ puzzle.title }}</h1>
+
+  <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start">
+    <div class="board-frame rounded-2xl border-2 border-ink p-1.5 shadow-[8px_8px_0_0_var(--accent)]">
+      <div class="board overflow-hidden rounded-lg" data-board data-pieces="{{ url_for('static', path='pieces/') }}">
+        {% for sq in squares %}
+        <button type="button" data-sq="{{ sq.name }}" aria-label="{{ sq.label }}" class="sq {{ 'sq-light' if sq.light else 'sq-dark' }}">
+          {% if sq.piece %}<img src="{{ url_for('static', path='pieces/' ~ sq.piece ~ '.svg') }}" alt="" draggable="false">{% endif %}
+          {% if sq.rank_label %}<span class="coord coord-rank" aria-hidden="true">{{ sq.rank_label }}</span>{% endif %}
+          {% if sq.file_label %}<span class="coord coord-file" aria-hidden="true">{{ sq.file_label }}</span>{% endif %}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <section aria-label="Puzzle controls" class="flex flex-col gap-4">
+      <p class="inline-flex items-center gap-2 self-start rounded-full border-2 border-line bg-surface px-3 py-1 text-sm font-bold">
+        <span class="size-3 rounded-sm border-2 border-ink {{ 'bg-white' if solver == 'w' else 'bg-[#1b1530]' }}"></span>{{ side }} to move
+      </p>
+
+      <p data-status role="status" aria-live="polite"
+         class="rounded-2xl border-2 border-ink bg-surface p-5 text-xl font-black data-[state=bad]:text-loss data-[state=good]:text-win">
+        {% if solution %}Find the best move for {{ side }}.{% else %}This puzzle can't be played here. Try it on chess.com.{% endif %}
+      </p>
+
+      {% if solution %}
+      <div class="flex flex-wrap gap-2" data-controls hidden>
+        <button type="button" data-hint class="rounded-xl border-2 border-line bg-surface px-4 py-2 text-sm font-bold hover:border-accent">Hint</button>
+        <button type="button" data-reset class="rounded-xl border-2 border-line bg-surface px-4 py-2 text-sm font-bold hover:border-accent">Start over</button>
+      </div>
+      <p class="text-sm text-muted">Tap a piece, then the square it should go to. You can also drag it.</p>
+      {% endif %}
+
+      {% if moves %}
+      <details class="group rounded-2xl border-2 border-line bg-surface">
+        <summary class="flex cursor-pointer list-none items-center justify-between p-4 font-bold">
+          Show solution <span aria-hidden="true" class="text-accent transition group-open:rotate-180">▾</span>
+        </summary>
+        <ol class="flex flex-wrap gap-x-3 gap-y-1 border-t-2 border-line p-4 font-mono font-bold">
+          {% for move in moves %}<li>{{ move }}</li>{% endfor %}
+        </ol>
+      </details>
+      {% endif %}
+
+      {% if puzzle.url and puzzle.url.startswith("https://") %}
+      <a href="{{ puzzle.url }}" rel="noopener" class="self-start rounded-xl border-2 border-ink px-4 py-2 text-sm font-bold hover:bg-accent hover:text-accent-ink">
+        Puzzle from chess.com ↗
+      </a>
+      {% endif %}
+      <p class="text-sm text-muted">A new puzzle every day.</p>
+    </section>
+  </div>
+</div>
+
+{% if solution %}
+<script type="application/json" id="puzzle-data">{{ solution|tojson }}</script>
+<script src="{{ url_for('static', path='js/puzzle.js') }}?v={{ asset_version('js/puzzle.js') }}" defer></script>
+{% endif %}
+{% endblock %}

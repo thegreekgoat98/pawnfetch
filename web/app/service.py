@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from pawnfetch.chesscom.client import ChessComClient, PlayerNotFoundError
-from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import (
+    DailyPuzzle,
+    Leaderboards,
+    PlayerProfile,
+    PlayerStats,
+    Streamer,
+)
 from web.app.cache import TTLCache
 
 PLAYER_TTL = 15 * 60
 NOT_FOUND_TTL = 60
 LEADERBOARDS_TTL = 30 * 60
-LEADERBOARDS_KEY = "leaderboards"
+STREAMERS_TTL = 5 * 60  # chess.com refreshes live status about every 5 minutes
+PUZZLE_TTL = 30 * 60  # a new puzzle is published once a day
+
+T = TypeVar("T")
 
 _NOT_FOUND = object()
 
@@ -63,13 +74,23 @@ class PlayerService:
         return data
 
     def get_leaderboards(self) -> Leaderboards:
-        cached = self._cache.get(LEADERBOARDS_KEY)
+        return self._cached("leaderboards", LEADERBOARDS_TTL, self._client.get_leaderboards)
+
+    def get_streamers(self) -> list[Streamer]:
+        return self._cached("streamers", STREAMERS_TTL, self._client.get_streamers)
+
+    def get_daily_puzzle(self) -> DailyPuzzle:
+        return self._cached("puzzle", PUZZLE_TTL, self._client.get_daily_puzzle)
+
+    def _cached(self, key: str, ttl: float, fetch: Callable[[], T]) -> T:
+        cached = self._cache.get(key)
         if cached is None:
             with self._upstream:
-                cached = self._cache.get(LEADERBOARDS_KEY)
+                # Re-check: another request may have filled the cache while we waited.
+                cached = self._cache.get(key)
                 if cached is None:
-                    cached = self._client.get_leaderboards()
-                    self._cache.set(LEADERBOARDS_KEY, cached, LEADERBOARDS_TTL)
+                    cached = fetch()
+                    self._cache.set(key, cached, ttl)
         return cached  # type: ignore[return-value]
 
     def close(self) -> None:

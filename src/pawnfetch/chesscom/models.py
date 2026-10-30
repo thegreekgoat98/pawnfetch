@@ -201,6 +201,71 @@ class Leaderboards:
         )
 
 
+@dataclass
+class StreamPlatform:
+    kind: str  # "twitch", "youtube", ...
+    stream_url: str | None = None
+    channel_url: str | None = None
+    is_live: bool = False
+    is_main: bool = False
+
+    @classmethod
+    def from_api(cls, data: dict) -> StreamPlatform:
+        return cls(
+            kind=str(data.get("type") or "other"),
+            stream_url=data.get("stream_url"),
+            channel_url=data.get("channel_url"),
+            is_live=bool(data.get("is_live")),
+            is_main=bool(data.get("is_main_live_platform")),
+        )
+
+
+@dataclass
+class Streamer:
+    username: str
+    url: str = ""
+    avatar: str | None = None
+    is_live: bool = False
+    is_community: bool = False
+    platforms: list[StreamPlatform] = field(default_factory=list)
+
+    @property
+    def live_platform(self) -> StreamPlatform | None:
+        """The platform to send viewers to: the one chess.com marks as main, else any live one."""
+        live = [p for p in self.platforms if p.is_live]
+        return next((p for p in live if p.is_main), live[0] if live else None)
+
+    @classmethod
+    def from_api(cls, data: dict) -> Streamer:
+        return cls(
+            username=data["username"],
+            url=data.get("url", ""),
+            avatar=data.get("avatar"),
+            is_live=bool(data.get("is_live")),
+            is_community=bool(data.get("is_community_streamer")),
+            platforms=[StreamPlatform.from_api(p) for p in data.get("platforms") or []],
+        )
+
+
+@dataclass
+class DailyPuzzle:
+    title: str
+    url: str
+    fen: str
+    pgn: str
+    published: datetime | None = None
+
+    @classmethod
+    def from_api(cls, data: dict) -> DailyPuzzle:
+        return cls(
+            title=data.get("title") or "Daily puzzle",
+            url=data.get("url", ""),
+            fen=data["fen"],
+            pgn=data.get("pgn", ""),
+            published=_to_datetime(data.get("publish_time")),
+        )
+
+
 def _trend(trend: dict | None) -> int:
     if not trend:
         return 0

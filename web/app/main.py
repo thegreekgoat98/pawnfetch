@@ -20,6 +20,7 @@ from pawnfetch.chesscom.client import (
 from web.app import filters
 from web.app.compare import build_sections, tally
 from web.app.leaderboards import BOARDS, BOARDS_BY_SLUG, DEFAULT_BOARD
+from web.app.puzzle import PuzzleError, board_squares, numbered, solution_moves, solve
 from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
@@ -184,6 +185,43 @@ def create_app(service: PlayerService | None = None) -> FastAPI:
             return lookup_error(request, exc)
         context = {"boards": BOARDS, "board": board, "podium": entries[:3], "rest": entries[3:]}
         return templates.TemplateResponse(request, "leaderboards.html", context)
+
+    @app.get("/streamers", response_class=HTMLResponse, response_model=None)
+    def streamers(request: Request) -> Response:
+        try:
+            everyone = player_service.get_streamers()
+        except ChessComError as exc:
+            return lookup_error(request, exc)
+        # Official chess.com streamers first, then community streamers; otherwise chess.com's order.
+        live = sorted((s for s in everyone if s.live_platform), key=lambda s: s.is_community)
+        offline = sorted((s for s in everyone if not s.live_platform), key=lambda s: s.username.lower())
+        return templates.TemplateResponse(request, "streamers.html", {"live": live, "offline": offline})
+
+    @app.get("/puzzle", response_class=HTMLResponse, response_model=None)
+    def daily_puzzle(request: Request) -> Response:
+        try:
+            puzzle = player_service.get_daily_puzzle()
+        except ChessComError as exc:
+            return lookup_error(request, exc)
+        try:
+            solution = solve(puzzle.fen, puzzle.pgn)
+        except PuzzleError:
+            solution = None  # still show the board and a link; the page just isn't playable
+        try:
+            start = solution.start if solution else puzzle.fen.split()[0]
+            solver = solution.solver if solution else puzzle.fen.split()[1]
+            squares = board_squares(start, solver)
+        except (IndexError, PuzzleError):
+            return render_error(request, 502, "chess.com sent a broken puzzle", "Try again later.")
+        sans = [s.san for s in solution.steps] if solution else solution_moves(puzzle.pgn)
+        context = {
+            "puzzle": puzzle,
+            "solver": solver,
+            "squares": squares,
+            "solution": solution.as_json() if solution else None,
+            "moves": numbered(sans, solver),
+        }
+        return templates.TemplateResponse(request, "puzzle.html", context)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> Response:
