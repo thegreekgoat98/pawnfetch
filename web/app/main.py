@@ -19,6 +19,7 @@ from pawnfetch.chesscom.client import (
 )
 from web.app import filters
 from web.app.compare import build_sections, tally
+from web.app.leaderboards import BOARDS, BOARDS_BY_SLUG, DEFAULT_BOARD
 from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
@@ -167,6 +168,22 @@ def create_app(service: PlayerService | None = None) -> FastAPI:
             "b": b,
         }
         return templates.TemplateResponse(request, "compare.html", context)
+
+    @app.get("/leaderboards", response_model=None)
+    async def leaderboards_index() -> Response:
+        return RedirectResponse(f"/leaderboards/{DEFAULT_BOARD}", status_code=307)
+
+    @app.get("/leaderboards/{slug}", response_class=HTMLResponse, response_model=None)
+    def leaderboard(request: Request, slug: str) -> Response:
+        board = BOARDS_BY_SLUG.get(slug)
+        if board is None:
+            raise StarletteHTTPException(status_code=404)
+        try:
+            entries = player_service.get_leaderboards().get(board.key)
+        except ChessComError as exc:
+            return lookup_error(request, exc)
+        context = {"boards": BOARDS, "board": board, "podium": entries[:3], "rest": entries[3:]}
+        return templates.TemplateResponse(request, "leaderboards.html", context)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> Response:

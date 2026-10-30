@@ -20,7 +20,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def load_fixture(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
 @respx.mock
@@ -176,3 +176,75 @@ def test_get_stats_normalizes_the_username():
         stats = client.get_stats(" HiKaru ")
 
     assert stats.username == "hikaru"
+
+
+LEADERBOARDS_URL = "https://api.chess.com/pub/leaderboards"
+
+
+@respx.mock
+def test_get_leaderboards_parses_every_board():
+    respx.get(LEADERBOARDS_URL).mock(
+        return_value=httpx.Response(200, json=load_fixture("leaderboards.json"))
+    )
+
+    with ChessComClient() as client:
+        boards = client.get_leaderboards()
+
+    blitz = boards.get("live_blitz")
+    assert [e.rank for e in blitz] == [1, 2, 3, 4, 10]
+    leader = blitz[0]
+    assert (leader.username, leader.score, leader.title) == ("Hikaru", 3450, "GM")
+    assert leader.country_code == "US"
+    assert leader.wins == 37650 and leader.total == 37650 + 5664 + 4432
+    assert blitz[3].name == "Ediz Gürel"
+    assert boards.get("rush")[0].score == 93
+    assert boards.get("not_a_board") == []
+
+
+@respx.mock
+def test_leaderboard_trends_are_signed():
+    respx.get(LEADERBOARDS_URL).mock(
+        return_value=httpx.Response(200, json=load_fixture("leaderboards.json"))
+    )
+
+    with ChessComClient() as client:
+        boards = client.get_leaderboards()
+
+    assert boards.get("live_blitz")[0].rank_change == 0
+    assert boards.get("live_blitz")[4].rank_change == 1
+
+
+def test_leaderboard_entry_tolerates_missing_optional_fields():
+    from pawnfetch.chesscom.models import LeaderboardEntry
+
+    entry = LeaderboardEntry.from_api(
+        {
+            "rank": 7,
+            "username": "anon",
+            "score": 1500,
+            "trend_rank": {"direction": -1, "delta": 3},
+        }
+    )
+
+    assert entry.name is None and entry.title is None and entry.country_code is None
+    assert entry.rank_change == -3
+    assert entry.score_change == 0
+    assert entry.win_pct == 0.0
+
+
+@respx.mock
+def test_leaderboards_404_is_not_reported_as_a_missing_player():
+    respx.get(LEADERBOARDS_URL).mock(return_value=httpx.Response(404, json={}))
+
+    with ChessComClient() as client, pytest.raises(ChessComHTTPError):
+        client.get_leaderboards()
+
+
+@respx.mock
+def test_malformed_leaderboards_raise_response_error():
+    respx.get(LEADERBOARDS_URL).mock(
+        return_value=httpx.Response(200, json={"live_blitz": [{"username": "x"}]})
+    )
+
+    with ChessComClient() as client, pytest.raises(ChessComResponseError):
+        client.get_leaderboards()

@@ -5,7 +5,7 @@ from urllib.parse import quote
 import httpx
 from typing_extensions import Self
 
-from pawnfetch.chesscom.models import PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
 
 BASE_URL = "https://api.chess.com/pub"
 USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
@@ -76,7 +76,16 @@ class ChessComClient:
                 "chess.com returned unexpected player stats."
             ) from exc
 
-    def _get(self, path: str, username: str) -> dict:
+    def get_leaderboards(self) -> Leaderboards:
+        data = self._get("/leaderboards")
+        try:
+            return Leaderboards.from_api(data)
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+            raise ChessComResponseError(
+                "chess.com returned unexpected leaderboards."
+            ) from exc
+
+    def _get(self, path: str, username: str | None = None) -> dict:
         try:
             response = self._client.get(f"{BASE_URL}{path}")
         except httpx.ConnectError as exc:
@@ -93,6 +102,8 @@ class ChessComClient:
             ) from exc
 
         if response.status_code == 404:
+            if username is None:
+                raise ChessComHTTPError("chess.com has no data at this address (404).")
             raise PlayerNotFoundError(username.strip())
         if response.status_code == 410:
             raise ChessComUnavailableError(

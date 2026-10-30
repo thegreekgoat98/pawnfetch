@@ -23,9 +23,7 @@ class PlayerProfile:
 
     @property
     def country_code(self) -> str | None:
-        if not self.country_url:
-            return None
-        return self.country_url.rstrip("/").rsplit("/", 1)[-1].upper() or None
+        return _country_code(self.country_url)
 
     @classmethod
     def from_api(cls, data: dict) -> PlayerProfile:
@@ -134,6 +132,85 @@ def _parse_game_type(data: dict, key: str) -> GameTypeStats | None:
     if key not in data:
         return None
     return GameTypeStats.from_api(data[key])
+
+
+@dataclass
+class LeaderboardEntry:
+    rank: int
+    username: str
+    score: int
+    url: str = ""
+    title: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    country_url: str | None = None
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
+    rank_change: int = 0  # positive: moved up the board since chess.com's previous update
+    score_change: int = 0
+
+    @property
+    def country_code(self) -> str | None:
+        return _country_code(self.country_url)
+
+    @property
+    def total(self) -> int:
+        return self.wins + self.losses + self.draws
+
+    @property
+    def win_pct(self) -> float:
+        return self.wins / self.total * 100 if self.total else 0.0
+
+    @classmethod
+    def from_api(cls, data: dict) -> LeaderboardEntry:
+        return cls(
+            rank=data["rank"],
+            username=data["username"],
+            score=data["score"],
+            url=data.get("url", ""),
+            title=data.get("title"),
+            name=data.get("name"),
+            avatar=data.get("avatar"),
+            country_url=data.get("country"),
+            wins=data.get("win_count", 0),
+            losses=data.get("loss_count", 0),
+            draws=data.get("draw_count", 0),
+            rank_change=_trend(data.get("trend_rank")),
+            score_change=_trend(data.get("trend_score")),
+        )
+
+
+@dataclass
+class Leaderboards:
+    """Top-50 lists keyed by chess.com's category names, e.g. "live_blitz" or "rush"."""
+
+    boards: dict[str, list[LeaderboardEntry]]
+
+    def get(self, key: str) -> list[LeaderboardEntry]:
+        return self.boards.get(key, [])
+
+    @classmethod
+    def from_api(cls, data: dict) -> Leaderboards:
+        return cls(
+            boards={
+                key: [LeaderboardEntry.from_api(row) for row in rows]
+                for key, rows in data.items()
+                if isinstance(rows, list)
+            }
+        )
+
+
+def _trend(trend: dict | None) -> int:
+    if not trend:
+        return 0
+    return int(trend.get("direction", 0)) * int(trend.get("delta", 0))
+
+
+def _country_code(url: str | None) -> str | None:
+    if not url:
+        return None
+    return url.rstrip("/").rsplit("/", 1)[-1].upper() or None
 
 
 def _to_datetime(timestamp: int | None) -> datetime | None:

@@ -17,7 +17,7 @@ API = "https://api.chess.com/pub/player"
 
 
 def load(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
 class Clock:
@@ -95,6 +95,21 @@ def test_service_does_not_cache_upstream_errors():
         with pytest.raises(Exception, match="server error"):
             service.get_player("hikaru")
     assert route.call_count == 2
+
+
+@respx.mock
+def test_service_caches_leaderboards():
+    route = respx.get("https://api.chess.com/pub/leaderboards").mock(
+        return_value=httpx.Response(200, json=load("leaderboards.json"))
+    )
+    service = PlayerService(ChessComClient())
+
+    first = service.get_leaderboards()
+    second = service.get_leaderboards()
+
+    assert first is second
+    assert route.call_count == 1
+    assert first.get("live_blitz")[0].username == "Hikaru"
 
 
 def test_duration_formats():

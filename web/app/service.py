@@ -4,11 +4,13 @@ import threading
 from dataclasses import dataclass
 
 from pawnfetch.chesscom.client import ChessComClient, PlayerNotFoundError
-from pawnfetch.chesscom.models import PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
 from web.app.cache import TTLCache
 
 PLAYER_TTL = 15 * 60
 NOT_FOUND_TTL = 60
+LEADERBOARDS_TTL = 30 * 60
+LEADERBOARDS_KEY = "leaderboards"
 
 _NOT_FOUND = object()
 
@@ -59,6 +61,16 @@ class PlayerService:
             raise
         self._cache.set(key, data, self._ttl)
         return data
+
+    def get_leaderboards(self) -> Leaderboards:
+        cached = self._cache.get(LEADERBOARDS_KEY)
+        if cached is None:
+            with self._upstream:
+                cached = self._cache.get(LEADERBOARDS_KEY)
+                if cached is None:
+                    cached = self._client.get_leaderboards()
+                    self._cache.set(LEADERBOARDS_KEY, cached, LEADERBOARDS_TTL)
+        return cached  # type: ignore[return-value]
 
     def close(self) -> None:
         self._client.close()

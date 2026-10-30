@@ -12,7 +12,7 @@ from pawnfetch.chesscom.client import (
     ChessComRateLimitError,
     PlayerNotFoundError,
 )
-from pawnfetch.chesscom.models import PlayerProfile, PlayerStats
+from pawnfetch.chesscom.models import Leaderboards, PlayerProfile, PlayerStats
 from web.app.main import create_app
 from web.app.service import PlayerData
 
@@ -31,6 +31,12 @@ class FakeService:
         return PlayerData(
             PlayerProfile.from_api(profile), PlayerStats.from_api("hikaru", stats)
         )
+
+    def get_leaderboards(self) -> Leaderboards:
+        if self.error:
+            raise self.error
+        data = json.loads((FIXTURES / "leaderboards.json").read_text(encoding="utf-8"))
+        return Leaderboards.from_api(data)
 
     def close(self) -> None:
         pass
@@ -144,3 +150,64 @@ def test_invalid_player_username_is_404():
 def test_static_assets_served():
     assert client.get("/static/favicon.svg").status_code == 200
     assert client.get("/static/js/app.js").status_code == 200
+
+
+def test_home_links_to_leaderboards():
+    assert 'href="/leaderboards"' in client.get("/").text
+
+
+def test_leaderboards_redirects_to_default_board():
+    response = client.get("/leaderboards", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/leaderboards/blitz"
+
+
+def test_leaderboard_page_shows_podium_and_table():
+    response = client.get("/leaderboards/blitz")
+    assert response.status_code == 200
+    text = response.text
+    assert "Hikaru Nakamura" in text and "Magnus Carlsen" in text
+    assert "Ediz Gürel" in text
+    assert "3,450" in text
+    assert 'href="/player/hikaru"' in text  # links use our lowercase player URLs
+    assert 'href="/player/chesswarrior7197"' in text
+    assert "1<span class=\"sr-only\"> places up</span>" in text  # ChessWarrior7197 moved up one place
+    assert "W / D / L" in text
+    assert 'aria-current="page"' in text
+
+
+def test_leaderboard_marks_only_the_current_tab():
+    text = client.get("/leaderboards/bughouse").text
+    assert text.count('aria-current="page"') == 1
+    assert 'href="/leaderboards/bughouse" aria-current="page"' in text
+
+
+def test_player_without_name_shows_username():
+    text = client.get("/leaderboards/bughouse").text
+    assert "ShadowThinker1" in text
+
+
+def test_puzzle_rush_board_has_no_win_loss_columns():
+    text = client.get("/leaderboards/puzzle-rush").text
+    assert "Best score" in text
+    assert "W / D / L" not in text
+    assert "Matthias Bluebaum" in text
+
+
+def test_empty_board_shows_message():
+    text = client.get("/leaderboards/daily").text  # not in the fixture
+    assert "didn't send any players" in text
+
+
+def test_hidden_boards_are_not_routes():
+    assert client.get("/leaderboards/tactics").status_code == 404
+    assert client.get("/leaderboards/nope").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [(ChessComRateLimitError("slow down"), 429), (ChessComConnectionError("offline"), 502)],
+)
+def test_leaderboard_errors_render_error_page(error, status):
+    service.error = error
+    assert client.get("/leaderboards/blitz").status_code == status

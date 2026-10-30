@@ -72,3 +72,21 @@
 {% macro pill(text, classes="") %}
 <span class="rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-bold {{ classes }}">{{ text }}</span>
 {% endmacro %}
+
+{% macro trend(change, unit) %}
+{% if change > 0 %}
+<span class="text-xs font-bold tabular-nums text-win"><span aria-hidden="true">▲</span>{{ change }}<span class="sr-only"> {{ unit }} up</span></span>
+{% elif change < 0 %}
+<span class="text-xs font-bold tabular-nums text-loss"><span aria-hidden="true">▼</span>{{ -change }}<span class="sr-only"> {{ unit }} down</span></span>
+{% else %}
+<span class="text-xs font-bold text-muted"><span aria-hidden="true">–</span><span class="sr-only">no change</span></span>
+{% endif %}
+{% endmacro %}
+
+{% macro avatar(url, classes) %}
+{% if url and url.startswith("https://") %}
+<img src="{{ url }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="shrink-0 border-2 border-ink bg-surface-2 object-cover {{ classes }}">
+{% else %}
+<div class="checker shrink-0 border-2 border-ink {{ classes }}" aria-hidden="true"></div>
+{% endif %}
+{% endmacro %}

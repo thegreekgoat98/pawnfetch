@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ board.label }} leaderboard — pawnfetch{% endblock %}
+
+{% block content %}
+{% from "_macros.html" import trend, avatar with context %}
+{% set medals = ["var(--rapid)", "var(--draw)", "var(--blitz)"] %}
+{% set podium_order = ["sm:order-2", "sm:order-1", "sm:order-3"] %}
+<div class="mx-auto w-full max-w-6xl px-5 py-10">
+  <h1 class="text-4xl font-black tracking-tight sm:text-5xl">Leaderboards</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    The top 50 on chess.com in each category. Arrows show how far a player moved at chess.com's last update.
+  </p>
+
+  <nav aria-label="Leaderboard categories" class="-mx-5 mt-6 overflow-x-auto px-5">
+    <ul class="flex w-max gap-2 pb-2 sm:w-auto sm:flex-wrap">
+      {% for b in boards %}
+      {% set active = b.slug == board.slug %}
+      <li>
+        <a href="/leaderboards/{{ b.slug }}"{% if active %} aria-current="page"{% endif %}
+           class="flex items-center gap-2 whitespace-nowrap rounded-full border-2 px-3.5 py-1.5 text-sm font-bold {{ 'border-ink bg-ink text-bg' if active else 'border-line bg-surface text-muted hover:border-accent hover:text-ink' }}">
+          <span class="size-2.5 rounded-sm {{ b.chip }}"></span>{{ b.label }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  {% if not podium %}
+  <p class="mt-10 rounded-2xl border-2 border-line bg-surface p-6 text-muted">
+    chess.com didn't send any players for this board right now. Try another category.
+  </p>
+  {% else %}
+  <ol aria-label="Top three" class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
+    {% for e in podium %}
+    <li class="{{ podium_order[loop.index0] }}">
+      <a href="/player/{{ e.username|lower|urlencode }}"
+         class="flex items-center gap-4 rounded-3xl border-2 border-ink bg-surface p-4 transition hover:-translate-y-1 sm:block sm:px-5 sm:text-center {{ 'sm:py-9' if loop.first else 'sm:py-6' }}"
+         style="box-shadow: 6px 6px 0 0 {{ medals[loop.index0] }}">
+        <span class="grid size-10 shrink-0 place-items-center rounded-full text-lg font-black text-[#1b1530] sm:mx-auto" style="background: {{ medals[loop.index0] }}">
+          <span class="sr-only">Rank </span>{{ e.rank }}
+        </span>
+        <div class="shrink-0 sm:mt-4">{{ avatar(e.avatar, "size-14 rounded-2xl sm:mx-auto sm:size-20") }}</div>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-lg font-black sm:mt-3">
+            {% if e.title %}<span class="mr-1 rounded bg-rapid px-1.5 text-xs font-black text-[#1b1530]">{{ e.title }}</span>{% endif %}{{ e.name or e.username }}
+          </p>
+          <p class="truncate text-sm text-muted">@{{ e.username }}{% if e.country_code %} · {{ e.country_code }}{% endif %}</p>
+        </div>
+        <div class="shrink-0 text-right sm:mt-3 sm:text-center">
+          <p class="text-2xl font-black tabular-nums sm:text-4xl">{{ e.score|intcomma }}</p>
+          <p class="flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-wide text-muted sm:justify-center">
+            {{ board.score_label }}{% if e.rank_change %} {{ trend(e.rank_change, "places") }}{% endif %}
+          </p>
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% if rest %}
+  <div class="mt-8 overflow-hidden rounded-2xl border-2 border-ink bg-surface">
+    <table class="w-full text-left">
+      <thead class="border-b-2 border-line text-xs font-bold uppercase tracking-wide text-muted">
+        <tr>
+          <th scope="col" class="w-16 px-4 py-3">#</th>
+          <th scope="col" class="px-2 py-3">Player</th>
+          {% if board.has_record %}
+          <th scope="col" class="hidden whitespace-nowrap px-4 py-3 text-right md:table-cell">W / D / L</th>
+          <th scope="col" class="hidden whitespace-nowrap px-4 py-3 text-right sm:table-cell">Win %</th>
+          {% endif %}
+          <th scope="col" class="whitespace-nowrap px-4 py-3 text-right">{{ board.score_label }}</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y-2 divide-line">
+        {% for e in rest %}
+        <tr class="hover:bg-surface-2">
+          <td class="px-4 py-3 align-middle">
+            <span class="block text-lg font-black tabular-nums">{{ e.rank }}</span>
+            {{ trend(e.rank_change, "places") }}
+          </td>
+          <td class="w-full max-w-0 px-2 py-3">
+            <a href="/player/{{ e.username|lower|urlencode }}" class="flex min-w-0 items-center gap-3 hover:text-accent">
+              {{ avatar(e.avatar, "size-10 rounded-xl") }}
+              <span class="min-w-0">
+                <span class="block truncate font-bold">
+                  {% if e.title %}<span class="mr-1 rounded bg-rapid px-1.5 text-xs font-black text-[#1b1530]">{{ e.title }}</span>{% endif %}{{ e.name or e.username }}
+                </span>
+                <span class="block truncate text-sm text-muted">@{{ e.username }}{% if e.country_code %} · {{ e.country_code }}{% endif %}</span>
+              </span>
+            </a>
+          </td>
+          {% if board.has_record %}
+          <td class="hidden whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-muted md:table-cell">
+            <span class="text-win">{{ e.wins|intcomma }}</span> / {{ e.draws|intcomma }} / <span class="text-loss">{{ e.losses|intcomma }}</span>
+          </td>
+          <td class="hidden px-4 py-3 text-right font-bold tabular-nums sm:table-cell">
+            {{ '%.0f' % e.win_pct }}%
+          </td>
+          {% endif %}
+          <td class="whitespace-nowrap px-4 py-3 text-right">
+            <span class="block text-lg font-black tabular-nums">{{ e.score|intcomma }}</span>
+            {% if e.score_change %}
+            <span class="text-xs font-bold tabular-nums {{ 'text-win' if e.score_change > 0 else 'text-loss' }}">{{ '%+d' % e.score_change }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <p class="mt-6 text-sm text-muted">Data from chess.com, refreshed here every 30 minutes.</p>
+</div>
+{% endblock %}
