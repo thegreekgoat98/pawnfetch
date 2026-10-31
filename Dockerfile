@@ -17,10 +17,13 @@ COPY src ./src
 COPY web ./web
 RUN uv sync --locked --no-dev --group web
 
-RUN useradd --create-home app
+RUN useradd --create-home app \
+    && mkdir /data && chown app /data
 USER app
 
-ENV PATH="/app/.venv/bin:$PATH"
+# The puzzle database lives on a volume mounted here (see web/app/puzzles.py).
+ENV PATH="/app/.venv/bin:$PATH" \
+    PUZZLES_DB=/data/puzzles.sqlite
 EXPOSE 8000
 
 CMD ["uvicorn", "web.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

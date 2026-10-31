@@ -1,0 +1,9 @@
+PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags,DailyDate
+001wr,r4rk1/p3ppbp/Pp1q1np1/3PpbB1/2B5/2N5/1PPQ1PPP/3RR1K1 w - - 4 18,f2f3 d6c5 g1h1 c5c4,989,75,97,2532,advantage fork master masterVsMaster middlegame short,https://lichess.org/KnJ2mojX#35,Pirc_Defense Pirc_Defense_Classical_Variation,
+003S3,r4k1r/pNqnppb1/6pn/2p3Np/7P/2P2Q2/PP3PP1/R1B1K2R b KQ - 2 15,a8b8 g5e6 f8g8 e6c7,1336,74,95,15076,advantage middlegame pin short,https://lichess.org/Eu6S0GPA/black#30,Modern_Defense Modern_Defense_Other_variations,
+00008,r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24,f2g3 e6e7 b2b1 b3c1 b1c1 h6c1,1811,76,95,10282,crushing hangingPiece long middlegame,https://lichess.org/787zsVup/black#48,,
+0000D,5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27,d3d6 f8d8 d6d8 f6d8,1529,74,96,37506,advantage endgame short,https://lichess.org/F8M8OS71#53,,
+006om,1r3k2/5p1p/2p1pp2/P2n4/2r1N3/P4PK1/2R2P1P/2R5 b - - 9 29,c4a4 e4c5 a4a5 c5d7 f8g7 d7b8,1921,74,95,9357,crushing endgame fork long master,https://lichess.org/BMIgw1OR/black#58,,
+00WTN,8/7R/B2k4/2pnp3/P7/3KP3/1r6/8 w - - 1 43,a6c4 e5e4 d3e4 d5f6,1994,75,95,7745,attraction crushing endgame master short,https://lichess.org/BRK2G49n#85,,
+00BCa,1r6/p2kp1P1/3p4/2pP4/2P2B2/pN6/5PK1/8 b - - 1 41,a3a2 b3c5 d6c5 f4b8 a2a1q g7g8q,1293,75,98,2139,advancedPawn crushing endgame long master promotion,https://lichess.org/B8N0BmLk/black#82,,
+004b0,5kB1/4b3/4P3/2p2P2/2b5/8/p7/B6K w - - 4 48,g8f7 e7g5 f5f6 g5e3 a1e5 e3f4 e5f4 a2a1q,2368,109,47,36,advancedPawn bishopEndgame crushing deflection endgame promotion quietMove veryLong,https://lichess.org/CJKIi1QJ#95,,

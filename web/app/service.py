@@ -7,7 +7,6 @@ from typing import TypeVar
 
 from pawnfetch.chesscom.client import ChessComClient, PlayerNotFoundError
 from pawnfetch.chesscom.models import (
-    DailyPuzzle,
     Leaderboards,
     PlayerProfile,
     PlayerStats,
@@ -19,7 +18,6 @@ PLAYER_TTL = 15 * 60
 NOT_FOUND_TTL = 60
 LEADERBOARDS_TTL = 30 * 60
 STREAMERS_TTL = 5 * 60  # chess.com refreshes live status about every 5 minutes
-PUZZLE_TTL = 30 * 60  # a new puzzle is published once a day
 
 T = TypeVar("T")
 
@@ -78,9 +76,6 @@ class PlayerService:
 
     def get_streamers(self) -> list[Streamer]:
         return self._cached("streamers", STREAMERS_TTL, self._client.get_streamers)
-
-    def get_daily_puzzle(self) -> DailyPuzzle:
-        return self._cached("puzzle", PUZZLE_TTL, self._client.get_daily_puzzle)
 
     def _cached(self, key: str, ttl: float, fetch: Callable[[], T]) -> T:
         cached = self._cache.get(key)

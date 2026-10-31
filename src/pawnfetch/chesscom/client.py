@@ -6,7 +6,6 @@ import httpx
 from typing_extensions import Self
 
 from pawnfetch.chesscom.models import (
-    DailyPuzzle,
     Leaderboards,
     PlayerProfile,
     PlayerStats,
@@ -98,15 +97,6 @@ class ChessComClient:
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
             raise ChessComResponseError(
                 "chess.com returned an unexpected streamer list."
-            ) from exc
-
-    def get_daily_puzzle(self) -> DailyPuzzle:
-        data = self._get("/puzzle")
-        try:
-            return DailyPuzzle.from_api(data)
-        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
-            raise ChessComResponseError(
-                "chess.com returned an unexpected daily puzzle."
             ) from exc
 
     def _get(self, path: str, username: str | None = None) -> dict:

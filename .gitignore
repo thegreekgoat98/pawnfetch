@@ -11,3 +11,6 @@ wheels/
 
 # Web tooling (Tailwind standalone binary)
 web/bin/
+
+# Puzzle database, built with `python -m web.app.puzzles import`
+data/

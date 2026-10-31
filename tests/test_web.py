@@ -13,13 +13,13 @@ from pawnfetch.chesscom.client import (
     PlayerNotFoundError,
 )
 from pawnfetch.chesscom.models import (
-    DailyPuzzle,
     Leaderboards,
     PlayerProfile,
     PlayerStats,
     Streamer,
 )
 from web.app.main import create_app
+from web.app.puzzles import PuzzleBank, build, read_rows
 from web.app.service import PlayerData
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -32,7 +32,6 @@ def fixture(name: str) -> dict:
 class FakeService:
     def __init__(self):
         self.error: Exception | None = None
-        self.puzzle_override: dict | None = None
 
     def get_player(self, username: str) -> PlayerData:
         if self.error:
@@ -53,23 +52,26 @@ class FakeService:
             raise self.error
         return [Streamer.from_api(s) for s in fixture("streamers.json")["streamers"]]
 
-    def get_daily_puzzle(self) -> DailyPuzzle:
-        if self.error:
-            raise self.error
-        return DailyPuzzle.from_api(self.puzzle_override or fixture("puzzle.json"))
-
     def close(self) -> None:
         pass
 
 
 service = FakeService()
-client = TestClient(create_app(service))
+puzzle_bank = PuzzleBank(Path("set-by-the-puzzle_db-fixture"))
+client = TestClient(create_app(service, puzzle_bank))
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _puzzle_db(tmp_path_factory):
+    path = tmp_path_factory.mktemp("puzzles") / "puzzles.sqlite"
+    with (FIXTURES / "puzzles.csv").open(encoding="utf-8", newline="") as text:
+        build(read_rows(text), path)
+    puzzle_bank.path = path
 
 
 @pytest.fixture(autouse=True)
 def _reset_service():
     service.error = None
-    service.puzzle_override = None
 
 
 def test_home_renders_search_form():
@@ -233,13 +235,13 @@ def test_hidden_boards_are_not_routes():
         ("/compare", "/compare"),
         ("/compare/hikaru/magnuscarlsen", "/compare"),
         ("/leaderboards/blitz", "/leaderboards"),
-        ("/puzzle", "/puzzle"),
+        ("/puzzles/00008", "/puzzles"),
         ("/streamers", "/streamers"),
     ],
 )
 def test_header_nav_on_every_page_marks_current_section(path, active):
     text = client.get(path).text
-    for href in ("/", "/compare", "/leaderboards", "/puzzle", "/streamers"):
+    for href in ("/", "/compare", "/leaderboards", "/puzzles", "/streamers"):
         marked = f'href="{href}" aria-current="page"' in text
         assert marked == (href == active), href
     assert 'aria-label="Main"' in text
@@ -253,7 +255,7 @@ def test_header_nav_is_on_error_pages():
 
 def test_home_links_to_every_live_feature():
     text = client.get("/").text
-    for href in ("/compare", "/leaderboards", "/puzzle", "/streamers"):
+    for href in ("/compare", "/leaderboards", "/puzzles", "/streamers"):
         assert f'href="{href}" class="after:absolute' in text, href
 
 
@@ -285,55 +287,80 @@ def puzzle_data(text: str) -> dict:
     return json.loads(text.split('id="puzzle-data">', 1)[1].split("</script>", 1)[0])
 
 
+def test_old_puzzle_url_redirects():
+    response = client.get("/puzzle", follow_redirects=False)
+    assert response.status_code == 301
+    assert response.headers["location"] == "/puzzles"
+
+
+@pytest.mark.parametrize(
+    ("level", "ids"), [("easy", {"001wr", "003S3", "00BCa"}), ("hard", {"006om", "00WTN"})]
+)
+def test_random_puzzle_redirects_within_the_level(level, ids):
+    for _ in range(10):
+        response = client.get("/puzzles", params={"level": level}, follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers["cache-control"] == "no-store"
+        puzzle_id, _, query = response.headers["location"].removeprefix("/puzzles/").partition("?")
+        assert puzzle_id in ids
+        assert query == f"level={level}"
+
+
+def test_unknown_level_falls_back_to_medium():
+    location = client.get("/puzzles", params={"level": "nope"}, follow_redirects=False).headers["location"]
+    assert location.split("?")[0] in {"/puzzles/00008", "/puzzles/0000D"}
+    assert location.endswith("?level=medium")
+
+
 def test_puzzle_page_sends_the_board_data():
-    response = client.get("/puzzle")
+    response = client.get("/puzzles/00008", params={"level": "hard"})
     assert response.status_code == 200
     text = response.text
-    assert "Royally Distracted" in text
-    assert "White to move" in text
     assert puzzle_data(text) == {
-        "fen": "2r1nr1k/1bp3qp/1p4p1/p4p2/PnBQ1N2/1P5P/1BP2RP1/6K1 w - - 0 1",
+        "fen": "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24",
+        "moves": ["f2g3", "e6e7", "b2b1", "b3c1", "b1c1", "h6c1"],
         "solver": "w",
-        "moves": ["Nxg6+", "hxg6", "Qh4#"],
     }
+    assert "You play White" in text
+    assert 'Rating <span class="tabular-nums">1811</span>' in text
+    assert 'href="/puzzles?level=hard" data-next' in text  # "Next" keeps the chosen level
+    assert 'href="/puzzles?level=hard" aria-current="true"' in text
+    assert "Hanging piece" in text
+    assert 'href="https://lichess.org/787zsVup/black#48"' in text
     assert 'type="module"' in text and "/static/js/puzzle.js" in text
-    assert "vendor/cm-chessboard/assets/chessboard.css" in text
-    assert "1. Nxg6+" in text and "2. Qh4#" in text
-    assert 'href="https://www.chess.com/daily/2026-10-30"' in text
+
+
+def test_shared_puzzle_link_uses_the_puzzles_own_level():
+    text = client.get("/puzzles/00008").text
+    assert 'href="/puzzles?level=medium" data-next' in text
 
 
 def test_puzzle_page_for_black():
-    service.puzzle_override = dict(
-        fixture("puzzle.json"), fen="4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1", pgn="1... d5 2. exd6"
-    )
-    text = client.get("/puzzle").text
-    assert "Black to move" in text
+    text = client.get("/puzzles/001wr").text  # white moves first in the FEN
+    assert "You play Black" in text
     assert puzzle_data(text)["solver"] == "b"
-    assert "1… d5" in text
 
 
-def test_puzzle_title_is_escaped():
-    service.puzzle_override = dict(fixture("puzzle.json"), title="</script><script>alert(1)</script>")
-    text = client.get("/puzzle").text
-    assert "<script>alert(1)" not in text
-    assert "&lt;script&gt;alert(1)" in text
+@pytest.mark.parametrize("bad", ["zzzzz", "a", "has%20space", "x" * 11])
+def test_unknown_or_invalid_puzzle_ids_are_404(bad):
+    assert client.get(f"/puzzles/{bad}").status_code == 404
 
 
-def test_puzzle_json_cannot_break_out_of_its_script_tag():
-    service.puzzle_override = dict(fixture("puzzle.json"), pgn="1. </script><script>alert`x`")
-    text = client.get("/puzzle").text
-    assert "<script>alert" not in text
-    assert puzzle_data(text)["moves"][0] == "</script><script>alert`x`"
+def test_puzzles_without_a_database(monkeypatch, tmp_path):
+    monkeypatch.setattr(puzzle_bank, "path", tmp_path / "missing.sqlite")
+    for path in ("/puzzles", "/puzzles/00008"):
+        response = client.get(path)
+        assert response.status_code == 503
+        assert "set up yet" in response.text
 
 
-@pytest.mark.parametrize("path", ["/streamers", "/puzzle"])
 @pytest.mark.parametrize(
     ("error", "status"),
     [(ChessComRateLimitError("slow down"), 429), (ChessComConnectionError("offline"), 502)],
 )
-def test_streamer_and_puzzle_errors_render_error_page(path, error, status):
+def test_streamer_errors_render_error_page(error, status):
     service.error = error
-    assert client.get(path).status_code == status
+    assert client.get("/streamers").status_code == status
 
 
 def test_board_assets_and_licences_are_served():

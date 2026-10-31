@@ -87,9 +87,19 @@ Then open http://127.0.0.1:8000. Styles are built with the
 tailwindcss -i web/app/static/css/input.css -o web/app/static/css/app.css --minify
 ```
 
+The puzzles come from the [Lichess puzzle database](https://database.lichess.org/#puzzles)
+(CC0) and live in a SQLite file that isn't committed. Build it once (about 30 MB) with:
+
+```bash
+uv run --group web python -m web.app.puzzles import
+```
+
+It's written to `data/puzzles.sqlite`, or to the path in the `PUZZLES_DB` environment variable.
+
 ## Disclaimer
 
 pawnfetch is an independent project and is not affiliated with or endorsed by Chess.com.
+Puzzles are from the Lichess open database; pawnfetch is not affiliated with Lichess.
 
 ## License
 

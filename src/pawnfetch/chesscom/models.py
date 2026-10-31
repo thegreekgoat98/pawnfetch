@@ -247,25 +247,6 @@ class Streamer:
         )
 
 
-@dataclass
-class DailyPuzzle:
-    title: str
-    url: str
-    fen: str
-    pgn: str
-    published: datetime | None = None
-
-    @classmethod
-    def from_api(cls, data: dict) -> DailyPuzzle:
-        return cls(
-            title=data.get("title") or "Daily puzzle",
-            url=data.get("url", ""),
-            fen=data["fen"],
-            pgn=data.get("pgn", ""),
-            published=_to_datetime(data.get("publish_time")),
-        )
-
-
 def _trend(trend: dict | None) -> int:
     if not trend:
         return 0

@@ -20,7 +20,14 @@ from pawnfetch.chesscom.client import (
 from web.app import filters
 from web.app.compare import build_sections, tally
 from web.app.leaderboards import BOARDS, BOARDS_BY_SLUG, DEFAULT_BOARD
-from web.app.puzzle import numbered, side_to_move, solution_moves
+from web.app.puzzles import (
+    DEFAULT_LEVEL,
+    ID_RE,
+    LEVELS,
+    LEVELS_BY_SLUG,
+    PuzzleBank,
+    PuzzlesUnavailableError,
+)
 from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
@@ -90,8 +97,9 @@ def featured_card(service: PlayerService) -> dict | None:
     return None
 
 
-def create_app(service: PlayerService | None = None) -> FastAPI:
+def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None = None) -> FastAPI:
     player_service = service or PlayerService()
+    puzzle_bank = puzzles or PuzzleBank()
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -197,21 +205,45 @@ def create_app(service: PlayerService | None = None) -> FastAPI:
         offline = sorted((s for s in everyone if not s.live_platform), key=lambda s: s.username.lower())
         return templates.TemplateResponse(request, "streamers.html", {"live": live, "offline": offline})
 
-    @app.get("/puzzle", response_class=HTMLResponse, response_model=None)
-    def daily_puzzle(request: Request) -> Response:
+    def puzzles_unavailable(request: Request) -> Response:
+        return render_error(
+            request, 503, "Puzzles aren't set up yet.", "The puzzle collection is being prepared. Check back soon."
+        )
+
+    @app.get("/puzzle", response_model=None)
+    async def old_puzzle_url() -> Response:
+        return RedirectResponse("/puzzles", status_code=301)
+
+    @app.get("/puzzles", response_model=None)
+    def random_puzzle(request: Request, level: str = DEFAULT_LEVEL.slug) -> Response:
+        chosen = LEVELS_BY_SLUG.get(level, DEFAULT_LEVEL)
         try:
-            puzzle = player_service.get_daily_puzzle()
-        except ChessComError as exc:
-            return lookup_error(request, exc)
-        solver = side_to_move(puzzle.fen)
-        moves = solution_moves(puzzle.pgn)
+            puzzle = puzzle_bank.random(chosen)
+        except PuzzlesUnavailableError:
+            return puzzles_unavailable(request)
+        if puzzle is None:
+            return puzzles_unavailable(request)
+        response = RedirectResponse(f"/puzzles/{puzzle.id}?level={chosen.slug}", status_code=303)
+        response.headers["Cache-Control"] = "no-store"  # every visit should get a new puzzle
+        return response
+
+    @app.get("/puzzles/{puzzle_id}", response_class=HTMLResponse, response_model=None)
+    def puzzle_page(request: Request, puzzle_id: str, level: str = "") -> Response:
+        if not ID_RE.fullmatch(puzzle_id):
+            raise StarletteHTTPException(status_code=404)
+        try:
+            puzzle = puzzle_bank.get(puzzle_id)
+        except PuzzlesUnavailableError:
+            return puzzles_unavailable(request)
+        if puzzle is None:
+            raise StarletteHTTPException(status_code=404)
+        # "Next puzzle" keeps the level the visitor picked; a shared link uses the puzzle's own.
+        chosen = LEVELS_BY_SLUG.get(level, puzzle.level)
         context = {
             "puzzle": puzzle,
-            "solver": solver,
-            # chess.js in the browser checks the moves; if they don't fit the position it
-            # falls back to showing a link to the puzzle on chess.com.
-            "board_data": {"fen": puzzle.fen, "solver": solver, "moves": moves},
-            "moves": numbered(moves, solver),
+            "levels": LEVELS,
+            "level": chosen,
+            "board_data": {"fen": puzzle.fen, "moves": list(puzzle.moves), "solver": puzzle.solver},
         }
         return templates.TemplateResponse(request, "puzzle.html", context)
 

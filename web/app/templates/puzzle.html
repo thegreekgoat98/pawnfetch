@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Daily puzzle: {{ puzzle.title }} — pawnfetch{% endblock %}
+{% block title %}Chess puzzle {{ puzzle.id }} ({{ puzzle.rating }}) — pawnfetch{% endblock %}
 
 {% block head %}
 {% set cm = "vendor/cm-chessboard/assets/" %}
@@ -10,55 +10,72 @@
 {% endblock %}
 
 {% block content %}
-{% set side = "White" if solver == "w" else "Black" %}
+{% set side = "White" if puzzle.solver == "w" else "Black" %}
+{% set next_url = "/puzzles?level=" ~ level.slug %}
 <div class="mx-auto w-full max-w-6xl px-5 py-10">
-  <p class="text-sm font-bold uppercase tracking-wide text-muted">
-    Daily puzzle{% if puzzle.published %} · {{ puzzle.published|date_long }}{% endif %}
-  </p>
-  <h1 class="mt-1 text-4xl font-black tracking-tight sm:text-5xl">{{ puzzle.title }}</h1>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-4xl font-black tracking-tight sm:text-5xl">Puzzles</h1>
+      <p class="mt-2 text-muted">Find the best move. A new one every time.</p>
+    </div>
+    <nav aria-label="Difficulty" class="flex gap-1.5">
+      {% for l in levels %}
+      <a href="/puzzles?level={{ l.slug }}"{% if l.slug == level.slug %} aria-current="true"{% endif %}
+         class="rounded-full border-2 px-3.5 py-1.5 text-sm font-bold {{ 'border-ink bg-ink text-bg' if l.slug == level.slug else 'border-line bg-surface text-muted hover:border-accent hover:text-ink' }}">{{ l.label }}</a>
+      {% endfor %}
+    </nav>
+  </div>
 
   <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start">
     <div class="board-frame rounded-2xl border-2 border-ink p-1.5 shadow-[8px_8px_0_0_var(--accent)]">
       <div data-board class="aspect-square overflow-hidden rounded-lg bg-[var(--board-dark)]">
         <noscript>
-          <p class="grid h-full place-items-center p-6 text-center font-bold text-[#1b1530]">The board needs JavaScript. You can still read the solution here.</p>
+          <p class="grid h-full place-items-center p-6 text-center font-bold text-[#1b1530]">The board needs JavaScript.</p>
         </noscript>
       </div>
     </div>
 
     <section aria-label="Puzzle controls" class="flex flex-col gap-4">
-      <p class="inline-flex items-center gap-2 self-start rounded-full border-2 border-line bg-surface px-3 py-1 text-sm font-bold">
-        <span class="size-3 rounded-sm border-2 border-ink {{ 'bg-white' if solver == 'w' else 'bg-[#1b1530]' }}"></span>{{ side }} to move
-      </p>
+      <div class="flex flex-wrap items-center gap-2 text-sm font-bold">
+        <span class="inline-flex items-center gap-2 rounded-full border-2 border-line bg-surface px-3 py-1">
+          <span class="size-3 rounded-sm border-2 border-ink {{ 'bg-white' if puzzle.solver == 'w' else 'bg-[#1b1530]' }}"></span>You play {{ side }}
+        </span>
+        <span class="rounded-full border-2 border-line bg-surface px-3 py-1">Rating <span class="tabular-nums">{{ puzzle.rating }}</span></span>
+      </div>
 
       <p data-status role="status" aria-live="polite"
          class="rounded-2xl border-2 border-ink bg-surface p-5 text-xl font-black data-[state=bad]:text-loss data-[state=good]:text-win">
-        Find the best move for {{ side }}.
+        Loading the puzzle…
       </p>
 
       <div class="flex flex-wrap gap-2" data-controls hidden>
         <button type="button" data-hint class="rounded-xl border-2 border-line bg-surface px-4 py-2 text-sm font-bold hover:border-accent">Hint</button>
+        <button type="button" data-solution class="rounded-xl border-2 border-line bg-surface px-4 py-2 text-sm font-bold hover:border-accent">Show solution</button>
         <button type="button" data-reset class="rounded-xl border-2 border-line bg-surface px-4 py-2 text-sm font-bold hover:border-accent">Start over</button>
       </div>
+
+      <a href="{{ next_url }}" data-next
+         class="self-start rounded-xl border-2 border-ink bg-surface px-5 py-2.5 font-bold transition hover:-translate-y-0.5 data-[ready]:bg-accent data-[ready]:text-accent-ink">
+        Next puzzle →
+      </a>
+
       <p data-help hidden class="text-sm text-muted">Drag a piece, or tap it and then tap where it should go. Dots show where it can move.</p>
 
-      {% if moves %}
+      {% if puzzle.tags %}
       <details class="group rounded-2xl border-2 border-line bg-surface">
         <summary class="flex cursor-pointer list-none items-center justify-between p-4 font-bold">
-          Show solution <span aria-hidden="true" class="text-accent transition group-open:rotate-180">▾</span>
+          Themes <span aria-hidden="true" class="text-accent transition group-open:rotate-180">▾</span>
         </summary>
-        <ol class="flex flex-wrap gap-x-3 gap-y-1 border-t-2 border-line p-4 font-mono font-bold">
-          {% for move in moves %}<li>{{ move }}</li>{% endfor %}
-        </ol>
+        <ul class="flex flex-wrap gap-2 border-t-2 border-line p-4">
+          {% for tag in puzzle.tags %}<li class="rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-bold">{{ tag }}</li>{% endfor %}
+        </ul>
       </details>
       {% endif %}
 
-      {% if puzzle.url and puzzle.url.startswith("https://") %}
-      <a href="{{ puzzle.url }}" rel="noopener" class="self-start rounded-xl border-2 border-ink px-4 py-2 text-sm font-bold hover:bg-accent hover:text-accent-ink">
-        Puzzle from chess.com ↗
-      </a>
-      {% endif %}
-      <p class="text-sm text-muted">A new puzzle every day.</p>
+      <p class="text-sm text-muted">
+        Puzzle from the <a href="https://database.lichess.org/#puzzles" rel="noopener" class="font-bold text-ink underline decoration-2 underline-offset-2 hover:text-accent">Lichess open database</a>
+        (CC0){% if puzzle.game_url.startswith("https://lichess.org/") %}, taken from <a href="{{ puzzle.game_url }}" rel="noopener" class="font-bold text-ink underline decoration-2 underline-offset-2 hover:text-accent">this game</a>{% endif %}.
+      </p>
     </section>
   </div>
 </div>

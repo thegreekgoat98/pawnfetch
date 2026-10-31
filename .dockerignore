@@ -7,6 +7,7 @@ __pycache__
 *.pyc
 dist
 tests
+data
 web/bin
 Dockerfile
 .dockerignore

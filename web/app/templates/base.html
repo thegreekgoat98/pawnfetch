@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}pawnfetch — chess.com stats, fast{% endblock %}</title>
-  <meta name="description" content="Look up and compare chess.com players: ratings, records, leaderboards and the daily puzzle.">
+  <meta name="description" content="Look up and compare chess.com players: ratings, records, leaderboards, live streamers and chess puzzles.">
   <meta name="color-scheme" content="dark light">
   <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <script>try{var t=localStorage.getItem("pf-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -19,7 +19,7 @@
     ("Search", "/", "bg-accent", path == "/" or path.startswith("/search") or path.startswith("/player/")),
     ("Compare", "/compare", "bg-blitz", path.startswith("/compare")),
     ("Leaderboards", "/leaderboards", "bg-daily", path.startswith("/leaderboards")),
-    ("Puzzle", "/puzzle", "bg-rapid", path.startswith("/puzzle")),
+    ("Puzzles", "/puzzles", "bg-rapid", path.startswith("/puzzle")),
     ("Streamers", "/streamers", "bg-loss", path.startswith("/streamers")),
   ] %}
   <header>

@@ -283,24 +283,8 @@ def test_live_platform_prefers_the_main_one():
 
 
 @respx.mock
-def test_get_daily_puzzle():
-    respx.get("https://api.chess.com/pub/puzzle").mock(
-        return_value=httpx.Response(200, json=load_fixture("puzzle.json"))
-    )
-
-    with ChessComClient() as client:
-        puzzle = client.get_daily_puzzle()
-
-    assert puzzle.title == "Royally Distracted"
-    assert puzzle.fen.startswith("2r1nr1k/")
-    assert "Qh4#" in puzzle.pgn
-    assert puzzle.published.year == 2026
-
-
-@respx.mock
-@pytest.mark.parametrize(("path", "method"), [("streamers", "get_streamers"), ("puzzle", "get_daily_puzzle")])
-def test_malformed_streamers_and_puzzle_raise_response_error(path, method):
-    respx.get(f"https://api.chess.com/pub/{path}").mock(return_value=httpx.Response(200, json={}))
+def test_malformed_streamers_raise_response_error():
+    respx.get("https://api.chess.com/pub/streamers").mock(return_value=httpx.Response(200, json={}))
 
     with ChessComClient() as client, pytest.raises(ChessComResponseError):
-        getattr(client, method)()
+        client.get_streamers()
