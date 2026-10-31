@@ -1,14 +1,15 @@
 Chess piece images
 ==================
 
-The SVG files in this folder are the "Cburnett" chess pieces by Colin M.L. Burnett,
+The chess pieces in cburnett.svg are the "Cburnett" pieces by Colin M.L. Burnett,
 from Wikimedia Commons, e.g. https://commons.wikimedia.org/wiki/File:Chess_klt45.svg
 
 The author offers them under a choice of licences (GFDL, CC BY-SA 3.0, BSD, GPL).
 pawnfetch uses them under the BSD licence below.
 
-Changes made: renamed (e.g. Chess_klt45.svg -> wK.svg), and the fixed width/height
-replaced with viewBox="0 0 45 45" so they scale with the board.
+Changes made: the 12 single-piece SVGs were combined into one sprite for cm-chessboard
+(one <g id="wk"> etc. per piece), their element ids removed, and each piece scaled from
+45x45 to the sprite's 40x40 tile.
 
 ----------------------------------------------------------------------------------
 

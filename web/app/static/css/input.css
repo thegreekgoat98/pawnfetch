@@ -84,95 +84,75 @@
     display: inline;
   }
 
-  .board {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    aspect-ratio: 1;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+  /* cm-chessboard theme for the puzzle board; the class comes from style.cssClass in puzzle.js. */
+  .cm-chessboard.pawnfetch:focus {
+    outline: none;
   }
 
-  .sq {
-    position: relative;
-    display: block;
-    aspect-ratio: 1;
-    padding: 0;
-    border: 0;
-    cursor: pointer;
-  }
-
-  .sq-light {
-    background: var(--board-light);
-  }
-
-  .sq-dark {
-    background: var(--board-dark);
-  }
-
-  /* State layer under the piece: last move, selection, wrong move, hint ring. */
-  .sq::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    transition: background-color 0.15s;
-  }
-
-  .sq.is-last::before {
-    background: var(--board-last);
-  }
-
-  .sq.is-selected::before {
-    background: var(--board-selected);
-  }
-
-  .sq.is-wrong::before {
-    background: var(--board-wrong);
-  }
-
-  .sq.is-hint::before {
-    box-shadow: inset 0 0 0 4px var(--daily);
-  }
-
-  .sq > img {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  .sq:focus-visible {
-    z-index: 2;
+  /* The keyboard cursor (and an outline) only for keyboard users, not after a mouse click or tap. */
+  .cm-chessboard.pawnfetch:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: -3px;
   }
 
-  .coord {
-    position: absolute;
-    z-index: 2;
-    font-size: clamp(8px, 1.8vw, 11px);
-    font-weight: 800;
-    line-height: 1;
+  .cm-chessboard.pawnfetch:not(:focus-visible) .keyboard-focus-indicator {
+    display: none;
+  }
+
+  .cm-chessboard.pawnfetch .board .square.white {
+    fill: var(--board-light);
+  }
+
+  .cm-chessboard.pawnfetch .board .square.black {
+    fill: var(--board-dark);
+  }
+
+  .cm-chessboard.pawnfetch .board .border {
+    fill: var(--board-dark);
+    stroke-width: 0;
+  }
+
+  .cm-chessboard.pawnfetch .coordinates {
     pointer-events: none;
+    user-select: none;
   }
 
-  .coord-rank {
-    top: 3px;
-    left: 3px;
+  .cm-chessboard.pawnfetch .coordinates .coordinate {
+    font-size: 7px;
+    font-weight: 800;
   }
 
-  .coord-file {
-    right: 4px;
-    bottom: 3px;
+  /* A coordinate drawn on a dark square uses the light colour, and the other way round. */
+  .cm-chessboard.pawnfetch .coordinates .coordinate.black {
+    fill: var(--board-light);
   }
 
-  .sq-light .coord {
-    color: var(--board-dark);
+  .cm-chessboard.pawnfetch .coordinates .coordinate.white {
+    fill: var(--board-dark);
   }
 
-  .sq-dark .coord {
-    color: var(--board-light);
+  .cm-chessboard.pawnfetch .markers .marker.marker-square {
+    fill: var(--board-selected);
+    opacity: 1;
+  }
+
+  .cm-chessboard.pawnfetch .markers .marker.marker-last {
+    fill: var(--board-last);
+  }
+
+  .cm-chessboard.pawnfetch .markers .marker.marker-wrong {
+    fill: var(--board-wrong);
+  }
+
+  .cm-chessboard.pawnfetch .markers .marker.marker-hint {
+    stroke: var(--daily);
+    stroke-width: 3px;
+  }
+
+  .cm-chessboard.pawnfetch .markers .marker.marker-dot,
+  .cm-chessboard.pawnfetch .markers .marker.marker-bevel {
+    fill: #1b1530;
+    opacity: 0.3;
   }
 
   .board-frame:has([data-solved]) {

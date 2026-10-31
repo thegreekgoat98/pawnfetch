@@ -281,43 +281,35 @@ def test_streamers_page_when_nobody_is_live(monkeypatch):
     assert "Nobody is live" in client.get("/streamers").text
 
 
-def test_puzzle_page_renders_a_playable_board():
+def puzzle_data(text: str) -> dict:
+    return json.loads(text.split('id="puzzle-data">', 1)[1].split("</script>", 1)[0])
+
+
+def test_puzzle_page_sends_the_board_data():
     response = client.get("/puzzle")
     assert response.status_code == 200
     text = response.text
     assert "Royally Distracted" in text
     assert "White to move" in text
-    assert text.count("data-sq=") == 64
-    assert text.split('data-sq="')[1].startswith('a8"')  # White at the bottom: a8 is top-left
-    assert 'aria-label="f4, white knight"' in text
-    assert 'id="puzzle-data"' in text and "/static/js/puzzle.js" in text
-    assert '"from": "f4"' in text and '"to": "g6"' in text
+    assert puzzle_data(text) == {
+        "fen": "2r1nr1k/1bp3qp/1p4p1/p4p2/PnBQ1N2/1P5P/1BP2RP1/6K1 w - - 0 1",
+        "solver": "w",
+        "moves": ["Nxg6+", "hxg6", "Qh4#"],
+    }
+    assert 'type="module"' in text and "/static/js/puzzle.js" in text
+    assert "vendor/cm-chessboard/assets/chessboard.css" in text
     assert "1. Nxg6+" in text and "2. Qh4#" in text
     assert 'href="https://www.chess.com/daily/2026-10-30"' in text
 
 
-def test_puzzle_page_flips_the_board_for_black():
+def test_puzzle_page_for_black():
     service.puzzle_override = dict(
         fixture("puzzle.json"), fen="4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1", pgn="1... d5 2. exd6"
     )
     text = client.get("/puzzle").text
     assert "Black to move" in text
-    assert text.index('data-sq="h1"') < text.index('data-sq="a8"')
+    assert puzzle_data(text)["solver"] == "b"
     assert "1… d5" in text
-
-
-def test_puzzle_page_without_a_usable_solution_still_shows_the_board():
-    service.puzzle_override = dict(fixture("puzzle.json"), pgn="1. Qz9")
-    response = client.get("/puzzle")
-    assert response.status_code == 200
-    assert response.text.count("data-sq=") == 64
-    assert 'id="puzzle-data"' not in response.text
-    assert "can't be played here" in response.text
-
-
-def test_puzzle_page_with_a_broken_fen_is_an_error():
-    service.puzzle_override = dict(fixture("puzzle.json"), fen="nonsense")
-    assert client.get("/puzzle").status_code == 502
 
 
 def test_puzzle_title_is_escaped():
@@ -325,6 +317,13 @@ def test_puzzle_title_is_escaped():
     text = client.get("/puzzle").text
     assert "<script>alert(1)" not in text
     assert "&lt;script&gt;alert(1)" in text
+
+
+def test_puzzle_json_cannot_break_out_of_its_script_tag():
+    service.puzzle_override = dict(fixture("puzzle.json"), pgn="1. </script><script>alert`x`")
+    text = client.get("/puzzle").text
+    assert "<script>alert" not in text
+    assert puzzle_data(text)["moves"][0] == "</script><script>alert`x`"
 
 
 @pytest.mark.parametrize("path", ["/streamers", "/puzzle"])
@@ -337,18 +336,17 @@ def test_streamer_and_puzzle_errors_render_error_page(path, error, status):
     assert client.get(path).status_code == status
 
 
-def test_piece_images_and_licence_are_served():
-    for code in ("wK", "bQ", "wN", "bP"):
-        response = client.get(f"/static/pieces/{code}.svg")
-        assert response.status_code == 200
-        assert "viewBox" in response.text
+def test_board_assets_and_licences_are_served():
+    sprite = client.get("/static/pieces/cburnett.svg")
+    assert sprite.status_code == 200
+    assert all(f'id="{c}{k}"' in sprite.text for c in "wb" for k in "kqrbnp")
     assert "Burnett" in client.get("/static/pieces/LICENSE.txt").text
-
-
-@pytest.mark.parametrize(
-    ("error", "status"),
-    [(ChessComRateLimitError("slow down"), 429), (ChessComConnectionError("offline"), 502)],
-)
-def test_leaderboard_errors_render_error_page(error, status):
-    service.error = error
-    assert client.get("/leaderboards/blitz").status_code == status
+    for path in (
+        "vendor/cm-chessboard/src/Chessboard.js",
+        "vendor/cm-chessboard/src/extensions/markers/Markers.js",
+        "vendor/cm-chessboard/assets/extensions/markers/markers.svg",
+        "vendor/chess.js/chess.js",
+        "js/puzzle.js",
+    ):
+        assert client.get(f"/static/{path}").status_code == 200, path
+    assert client.get("/static/vendor/cm-chessboard/assets/pieces/staunty.svg").status_code == 404

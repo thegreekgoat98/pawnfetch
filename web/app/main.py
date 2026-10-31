@@ -20,7 +20,7 @@ from pawnfetch.chesscom.client import (
 from web.app import filters
 from web.app.compare import build_sections, tally
 from web.app.leaderboards import BOARDS, BOARDS_BY_SLUG, DEFAULT_BOARD
-from web.app.puzzle import PuzzleError, board_squares, numbered, solution_moves, solve
+from web.app.puzzle import numbered, side_to_move, solution_moves
 from web.app.service import PlayerService
 
 BASE_DIR = Path(__file__).parent
@@ -203,23 +203,15 @@ def create_app(service: PlayerService | None = None) -> FastAPI:
             puzzle = player_service.get_daily_puzzle()
         except ChessComError as exc:
             return lookup_error(request, exc)
-        try:
-            solution = solve(puzzle.fen, puzzle.pgn)
-        except PuzzleError:
-            solution = None  # still show the board and a link; the page just isn't playable
-        try:
-            start = solution.start if solution else puzzle.fen.split()[0]
-            solver = solution.solver if solution else puzzle.fen.split()[1]
-            squares = board_squares(start, solver)
-        except (IndexError, PuzzleError):
-            return render_error(request, 502, "chess.com sent a broken puzzle", "Try again later.")
-        sans = [s.san for s in solution.steps] if solution else solution_moves(puzzle.pgn)
+        solver = side_to_move(puzzle.fen)
+        moves = solution_moves(puzzle.pgn)
         context = {
             "puzzle": puzzle,
             "solver": solver,
-            "squares": squares,
-            "solution": solution.as_json() if solution else None,
-            "moves": numbered(sans, solver),
+            # chess.js in the browser checks the moves; if they don't fit the position it
+            # falls back to showing a link to the puzzle on chess.com.
+            "board_data": {"fen": puzzle.fen, "solver": solver, "moves": moves},
+            "moves": numbered(moves, solver),
         }
         return templates.TemplateResponse(request, "puzzle.html", context)
 

@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}?v={{ asset_version('css/app.css') }}">
   <script src="{{ url_for('static', path='vendor/htmx.min.js') }}" defer></script>
   <script src="{{ url_for('static', path='js/app.js') }}?v={{ asset_version('js/app.js') }}" defer></script>
+  {% block head %}{% endblock %}
 </head>
 <body class="flex min-h-screen flex-col bg-bg font-sans text-ink antialiased">
   {% set path = request.url.path %}
