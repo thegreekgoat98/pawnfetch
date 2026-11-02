@@ -83,79 +83,129 @@
   [data-theme="light"] .theme-icon-moon {
     display: inline;
   }
+}
 
-  /* cm-chessboard theme for the puzzle board; the class comes from style.cssClass in puzzle.js. */
-  .cm-chessboard.pawnfetch:focus {
-    outline: none;
-  }
+/* The puzzle board rules are deliberately NOT in a @layer: cm-chessboard's own CSS is unlayered,
+   and unlayered CSS always beats layered CSS, whatever the specificity. */
+/* cm-chessboard theme for the puzzle board; the class comes from style.cssClass in puzzle.js. */
+.cm-chessboard.pawnfetch:focus {
+  outline: none;
+}
 
-  /* The keyboard cursor (and an outline) only for keyboard users, not after a mouse click or tap. */
-  .cm-chessboard.pawnfetch:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: -3px;
-  }
+/* The keyboard cursor (and an outline) only for keyboard users, not after a mouse click or tap. */
+.cm-chessboard.pawnfetch:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
 
-  .cm-chessboard.pawnfetch:not(:focus-visible) .keyboard-focus-indicator {
-    display: none;
-  }
+.cm-chessboard.pawnfetch:not(:focus-visible) .keyboard-focus-indicator {
+  display: none;
+}
 
-  .cm-chessboard.pawnfetch .board .square.white {
-    fill: var(--board-light);
-  }
+.cm-chessboard.pawnfetch .board .square.white {
+  fill: var(--board-light);
+}
 
-  .cm-chessboard.pawnfetch .board .square.black {
-    fill: var(--board-dark);
-  }
+.cm-chessboard.pawnfetch .board .square.black {
+  fill: var(--board-dark);
+}
 
-  .cm-chessboard.pawnfetch .board .border {
-    fill: var(--board-dark);
-    stroke-width: 0;
-  }
+.cm-chessboard.pawnfetch .board .border {
+  fill: var(--board-dark);
+  stroke-width: 0;
+}
 
-  .cm-chessboard.pawnfetch .coordinates {
-    pointer-events: none;
-    user-select: none;
-  }
+.cm-chessboard.pawnfetch .coordinates {
+  pointer-events: none;
+  user-select: none;
+}
 
-  .cm-chessboard.pawnfetch .coordinates .coordinate {
-    font-size: 7px;
-    font-weight: 800;
-  }
+.cm-chessboard.pawnfetch .coordinates .coordinate {
+  font-size: 7px;
+  font-weight: 800;
+}
 
-  /* A coordinate drawn on a dark square uses the light colour, and the other way round. */
-  .cm-chessboard.pawnfetch .coordinates .coordinate.black {
-    fill: var(--board-light);
-  }
+/* A coordinate drawn on a dark square uses the light colour, and the other way round. */
+.cm-chessboard.pawnfetch .coordinates .coordinate.black {
+  fill: var(--board-light);
+}
 
-  .cm-chessboard.pawnfetch .coordinates .coordinate.white {
-    fill: var(--board-dark);
-  }
+.cm-chessboard.pawnfetch .coordinates .coordinate.white {
+  fill: var(--board-dark);
+}
 
-  .cm-chessboard.pawnfetch .markers .marker.marker-square {
-    fill: var(--board-selected);
-    opacity: 1;
-  }
+.cm-chessboard.pawnfetch .markers .marker.marker-square {
+  fill: var(--board-selected);
+  opacity: 1;
+}
 
-  .cm-chessboard.pawnfetch .markers .marker.marker-last {
-    fill: var(--board-last);
-  }
+.cm-chessboard.pawnfetch .markers .marker.marker-last {
+  fill: var(--board-last);
+}
 
-  .cm-chessboard.pawnfetch .markers .marker.marker-wrong {
-    fill: var(--board-wrong);
-  }
+.cm-chessboard.pawnfetch .markers .marker.marker-wrong {
+  fill: var(--board-wrong);
+}
 
-  .cm-chessboard.pawnfetch .markers .marker.marker-hint {
-    stroke: var(--daily);
-    stroke-width: 3px;
-  }
+.cm-chessboard.pawnfetch .markers .marker.marker-hint {
+  stroke: var(--daily);
+  stroke-width: 3px;
+}
 
-  .cm-chessboard.pawnfetch .markers .marker.marker-dot,
-  .cm-chessboard.pawnfetch .markers .marker.marker-bevel {
-    fill: #1b1530;
-    opacity: 0.3;
-  }
+.cm-chessboard.pawnfetch .markers .marker.marker-dot,
+.cm-chessboard.pawnfetch .markers .marker.marker-bevel {
+  fill: #1b1530;
+  opacity: 0.3;
+}
 
-  .board-frame:has([data-solved]) {
-    box-shadow: 8px 8px 0 0 var(--win) !important;
-  }
+/* Right-click arrows and circles. Plain right-click is orange like chess.com;
+   Shift is red, Alt is blue, Shift+Alt is green (the library's "success/danger/info/warning"). */
+.cm-chessboard.pawnfetch .arrow-success {
+  --annotation: #f97316;
+}
+
+.cm-chessboard.pawnfetch .arrow-danger {
+  --annotation: #e11d48;
+}
+
+.cm-chessboard.pawnfetch .arrow-info {
+  --annotation: #0284c7;
+}
+
+.cm-chessboard.pawnfetch .arrow-warning {
+  --annotation: #16a34a;
+}
+
+.cm-chessboard.pawnfetch .arrows .arrow-head {
+  fill: var(--annotation);
+}
+
+.cm-chessboard.pawnfetch .arrows .arrow-line {
+  stroke: var(--annotation);
+  opacity: 0.85;
+}
+
+.cm-chessboard.pawnfetch .markers .marker.marker-circle-success {
+  stroke: #f97316;
+}
+
+.cm-chessboard.pawnfetch .markers .marker.marker-circle-danger {
+  stroke: #e11d48;
+}
+
+.cm-chessboard.pawnfetch .markers .marker.marker-circle-info {
+  stroke: #0284c7;
+}
+
+.cm-chessboard.pawnfetch .markers .marker.marker-circle-warning {
+  stroke: #16a34a;
+}
+
+.cm-chessboard.pawnfetch .markers .marker[class*="marker-circle-"] {
+  stroke-width: 3px;
+  opacity: 0.85;
+}
+
+.board-frame:has([data-solved]) {
+  box-shadow: 8px 8px 0 0 var(--win);
 }

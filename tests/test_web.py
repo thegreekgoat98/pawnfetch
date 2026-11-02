@@ -372,6 +372,10 @@ def test_board_assets_and_licences_are_served():
         "vendor/cm-chessboard/src/Chessboard.js",
         "vendor/cm-chessboard/src/extensions/markers/Markers.js",
         "vendor/cm-chessboard/assets/extensions/markers/markers.svg",
+        "vendor/cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js",
+        "vendor/cm-chessboard/src/extensions/arrows/Arrows.js",
+        "vendor/cm-chessboard/assets/extensions/arrows/arrows.svg",
+        "vendor/cm-chessboard/assets/extensions/arrows/arrows.css",
         "vendor/chess.js/chess.js",
         "js/puzzle.js",
     ):

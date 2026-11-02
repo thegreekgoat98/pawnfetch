@@ -7,6 +7,7 @@ import {Chessboard, BORDER_TYPE, COLOR, INPUT_EVENT_TYPE} from "../vendor/cm-che
 import {Markers, MARKER_TYPE} from "../vendor/cm-chessboard/src/extensions/markers/Markers.js"
 import {PROMOTION_DIALOG_RESULT_TYPE, PromotionDialog} from "../vendor/cm-chessboard/src/extensions/promotion-dialog/PromotionDialog.js"
 import {Accessibility} from "../vendor/cm-chessboard/src/extensions/accessibility/Accessibility.js"
+import {RightClickAnnotator} from "../vendor/cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js"
 import {Chess} from "../vendor/chess.js/chess.js"
 
 // Marker types must be the same object every time (cm-chessboard compares by reference).
@@ -50,7 +51,16 @@ const board = new Chessboard(boardEl, {
         {class: Markers, props: {autoMarkers: MARKER_TYPE.square}},
         {class: PromotionDialog},
         {class: Accessibility, props: {language: "en", keyboardMoveInput: true}},
+        // Right-click arrows and circles, like chess.com. Adds the Arrows extension itself.
+        {class: RightClickAnnotator},
     ],
+})
+
+// Arrows and circles are the visitor's scribbles: clear them on a left click, like chess.com,
+// and whenever the position changes.
+const clearAnnotations = () => board.setAnnotations({})
+boardEl.addEventListener("mousedown", (event) => {
+    if (event.button === 0) clearAnnotations()
 })
 
 function markLastMove(move) {
@@ -63,6 +73,7 @@ function markLastMove(move) {
 async function playNext() {
     const move = game.move(toMove(data.moves[ply]))
     ply += 1
+    clearAnnotations()
     await board.setPosition(game.fen(), true)
     markLastMove(move)
     return move
@@ -159,6 +170,7 @@ async function start() {
     ply = 0
     delete boardEl.dataset.solved
     delete nextEl.dataset.ready
+    clearAnnotations()
     board.removeMarkers()
     board.disableMoveInput()
     await board.setPosition(data.fen, false)

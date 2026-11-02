@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{{ url_for('static', path=cm ~ 'chessboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', path=cm ~ 'extensions/markers/markers.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', path=cm ~ 'extensions/promotion-dialog/promotion-dialog.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path=cm ~ 'extensions/arrows/arrows.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -59,7 +60,10 @@
         Next puzzle →
       </a>
 
-      <p data-help hidden class="text-sm text-muted">Drag a piece, or tap it and then tap where it should go. Dots show where it can move.</p>
+      <p data-help hidden class="text-sm text-muted">
+        Drag a piece, or tap it and then tap where it should go. Dots show where it can move.
+        <span class="hidden sm:inline">Right-click and drag to draw an arrow, right-click a square to circle it; hold Shift, Alt or both for other colours.</span>
+      </p>
 
       {% if puzzle.tags %}
       <details class="group rounded-2xl border-2 border-line bg-surface">
