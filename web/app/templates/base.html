@@ -57,7 +57,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="border-t-2 border-line">
+  <footer class="border-t-2 border-line {% block footer_class %}{% endblock %}">
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
       <p>Data from the Chess.com Published-Data API. Not affiliated with Chess.com.</p>
       <p>Prefer the terminal? <code class="rounded-lg bg-surface-2 px-2 py-1 font-mono text-ink">pipx install pawnfetch</code></p>

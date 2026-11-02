@@ -209,3 +209,10 @@
 .board-frame:has([data-solved]) {
   box-shadow: 8px 8px 0 0 var(--win);
 }
+
+/* Puzzle page: the board column is as wide as the window height allows, so the whole board
+   is visible without scrolling. 15rem covers the header, title and padding above the board;
+   min() keeps it between 18rem and 34rem. Below lg the board is simply full width. */
+.puzzle-page {
+  --board: clamp(18rem, calc(100svh - 15rem), 34rem);
+}

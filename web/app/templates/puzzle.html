@@ -2,6 +2,9 @@
 
 {% block title %}Chess puzzle {{ puzzle.id }} ({{ puzzle.rating }}) — pawnfetch{% endblock %}
 
+{# The page fits the window on laptops and up; the site footer would only add a scrollbar there. #}
+{% block footer_class %}lg:hidden{% endblock %}
+
 {% block head %}
 {% set cm = "vendor/cm-chessboard/assets/" %}
 <link rel="stylesheet" href="{{ url_for('static', path=cm ~ 'chessboard.css') }}">
@@ -13,11 +16,13 @@
 {% block content %}
 {% set side = "White" if puzzle.solver == "w" else "Black" %}
 {% set next_url = "/puzzles?level=" ~ level.slug %}
-<div class="mx-auto w-full max-w-6xl px-5 py-10">
+{# On laptop-sized screens and up, the board is sized from the window height (--board) so the
+   whole board fits on screen without scrolling; it never grows past 34rem. #}
+<div class="puzzle-page mx-auto w-full max-w-6xl px-5 py-6 lg:py-5">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-4xl font-black tracking-tight sm:text-5xl">Puzzles</h1>
-      <p class="mt-2 text-muted">Find the best move. A new one every time.</p>
+      <h1 class="text-4xl font-black tracking-tight sm:text-5xl lg:text-4xl">Puzzles</h1>
+      <p class="mt-1 text-muted">Find the best move. A new one every time.</p>
     </div>
     <nav aria-label="Difficulty" class="flex gap-1.5">
       {% for l in levels %}
@@ -27,7 +32,7 @@
     </nav>
   </div>
 
-  <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start">
+  <div class="mt-6 grid grid-cols-1 gap-8 lg:mt-5 lg:grid-cols-[var(--board)_minmax(0,1fr)] lg:items-start">
     <div class="board-frame rounded-2xl border-2 border-ink p-1.5 shadow-[8px_8px_0_0_var(--accent)]">
       <div data-board class="aspect-square overflow-hidden rounded-lg bg-[var(--board-dark)]">
         <noscript>
