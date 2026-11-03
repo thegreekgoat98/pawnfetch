@@ -1,0 +1,76 @@
+{# The openings section of the player page, swapped in by htmx (see openings_loading). #}
+{% from "_macros.html" import openings_loading %}
+
+{% macro wdl_bar(s) %}
+<div class="flex h-2 overflow-hidden rounded-full bg-surface-2" role="img"
+     aria-label="{{ s.wins }} won, {{ s.draws }} drawn, {{ s.losses }} lost">
+  <span class="bg-win" style="width: {{ '%.2f' % s.win_pct }}%"></span><span class="bg-draw" style="width: {{ '%.2f' % s.draw_pct }}%"></span><span class="bg-loss" style="width: {{ '%.2f' % (100 - s.win_pct - s.draw_pct) }}%"></span>
+</div>
+{% endmacro %}
+
+{% macro color_chip(color) %}
+<span class="inline-block size-3 shrink-0 rounded-sm border-2 border-ink {{ 'bg-white' if color == 'White' else 'bg-[#1b1530]' }}" aria-hidden="true"></span>
+{% endmacro %}
+
+{% macro opening_list(color, openings) %}
+<div class="rounded-2xl border-2 border-ink bg-surface p-5">
+  <h3 class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">{{ color_chip(color) }}As {{ color }}</h3>
+  {% if openings %}
+  <ol class="mt-3 divide-y-2 divide-line">
+    {% for s in openings %}
+    <li class="py-3">
+      <div class="flex items-baseline justify-between gap-3">
+        <p class="min-w-0 truncate font-bold">{{ s.family }}</p>
+        <p class="shrink-0 text-sm tabular-nums text-muted">{{ s.games }} {{ "game" if s.games == 1 else "games" }} · <b class="text-ink">{{ '%.0f' % s.score }}%</b></p>
+      </div>
+      {% if s.top_variation %}<p class="truncate text-sm text-muted">Mostly {{ s.top_variation }}</p>{% endif %}
+      <div class="mt-2">{{ wdl_bar(s) }}</div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="mt-3 text-muted">No games as {{ color }} yet.</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% if retry_url %}
+{{ openings_loading(retry_url, retry_delay) }}
+{% else %}
+<section id="openings" aria-labelledby="openings-heading">
+  <h2 id="openings-heading" class="mb-1 mt-12 text-2xl font-black tracking-tight">Openings</h2>
+  {% if error %}
+  <p class="mt-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">{{ error }}</p>
+  {% elif not summary.games %}
+  <p class="mt-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">No standard chess games in the last few months.</p>
+  {% else %}
+  <p class="mb-4 text-sm text-muted">
+    From the last {{ summary.games }} games{% if summary.first %}, {{ summary.first|date_long }} – {{ summary.last|date_long }}{% endif %}.
+    Score counts a draw as half a win.
+  </p>
+
+  {% if summary.highlights %}
+  <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    {% for h in summary.highlights %}
+    {% set accent = {"Most played": "var(--accent)", "Best results": "var(--win)", "Needs work": "var(--loss)"}[h.label] %}
+    <div class="rounded-2xl border-2 border-ink bg-surface p-4" style="box-shadow: 5px 5px 0 0 {{ accent }}">
+      <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ h.label }}</p>
+      <p class="mt-1 flex items-center gap-2 text-lg font-black">{{ color_chip(h.color) }}<span class="truncate">{{ h.stats.family }}</span></p>
+      <p class="text-sm text-muted">as {{ h.color }} · {{ h.stats.games }} games · {{ '%.0f' % h.stats.score }}% score</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+    {{ opening_list("White", summary.white) }}
+    {{ opening_list("Black", summary.black) }}
+  </div>
+  <p class="mt-3 flex flex-wrap gap-x-4 text-xs font-semibold text-muted">
+    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-win"></span>Won</span>
+    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-draw"></span>Drawn</span>
+    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-loss"></span>Lost</span>
+  </p>
+  {% endif %}
+</section>
+{% endif %}

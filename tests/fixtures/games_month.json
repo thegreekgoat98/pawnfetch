@@ -1,0 +1,311 @@
+{
+  "games": [
+    {
+      "url": "https://www.chess.com/game/live/1001",
+      "end_time": 1793003600,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp1",
+        "rating": 1480,
+        "result": "resigned",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u1",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Italian-Game-Two-Knights-Defense-4.d4"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1002",
+      "end_time": 1793007200,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp2",
+        "rating": 1480,
+        "result": "checkmated",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u2",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Italian-Game-Two-Knights-Defense"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1003",
+      "end_time": 1793010800,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "agreed",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp3",
+        "rating": 1480,
+        "result": "agreed",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u3",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Italian-Game-Giuoco-Pianissimo-Variation"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1004",
+      "end_time": 1793014400,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "resigned",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp4",
+        "rating": 1480,
+        "result": "win",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u4",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Alapin-Sicilian-Defense-2...Nc6"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1005",
+      "end_time": 1793018000,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "timeout",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp5",
+        "rating": 1480,
+        "result": "win",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u5",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Sicilian-Defense-Open...4.Nxd4-d6"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1006",
+      "end_time": 1793021600,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "opp6",
+        "rating": 1480,
+        "result": "resigned",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "black": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u6",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Caro-Kann-Defense-Exchange-Variation-3...cxd5"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1007",
+      "end_time": 1793025200,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "opp7",
+        "rating": 1480,
+        "result": "repetition",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "black": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "repetition",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u7",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Caro-Kann-Defense-Exchange-Variation"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1008",
+      "end_time": 1793028800,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "opp8",
+        "rating": 1480,
+        "result": "win",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "black": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "checkmated",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u8",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Caro-Kann-Defense-Advance-Variation"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1009",
+      "end_time": 1793032400,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess960",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp9",
+        "rating": 1480,
+        "result": "resigned",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u9",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Kings-Pawn-Opening"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1010",
+      "end_time": 1793036000,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "black": {
+        "username": "opp10",
+        "rating": 1480,
+        "result": "resigned",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u10",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    },
+    {
+      "url": "https://www.chess.com/game/live/1011",
+      "end_time": 1793039600,
+      "time_class": "blitz",
+      "time_control": "180",
+      "rules": "chess",
+      "rated": true,
+      "white": {
+        "username": "opp11",
+        "rating": 1480,
+        "result": "resigned",
+        "@id": "y",
+        "uuid": "b"
+      },
+      "black": {
+        "username": "TestPlayer",
+        "rating": 1500,
+        "result": "win",
+        "@id": "x",
+        "uuid": "a"
+      },
+      "pgn": "[Event \"Live Chess\"] ...",
+      "tcn": "mC0K",
+      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "uuid": "u11",
+      "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "eco": "https://www.chess.com/openings/Undefined"
+    }
+  ]
+}

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from urllib.parse import quote
 
 import httpx
 from typing_extensions import Self
 
 from pawnfetch.chesscom.models import (
+    Game,
     Leaderboards,
     PlayerProfile,
     PlayerStats,
@@ -14,6 +16,7 @@ from pawnfetch.chesscom.models import (
 
 BASE_URL = "https://api.chess.com/pub"
 USER_AGENT = "pawnfetch-cli (contact: ranjanchinmoy@gmail.com)"
+ARCHIVE_RE = re.compile(r"/games/(\d{4})/(\d{2})$")
 
 
 def _slug(username: str) -> str:
@@ -97,6 +100,27 @@ class ChessComClient:
         except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
             raise ChessComResponseError(
                 "chess.com returned an unexpected streamer list."
+            ) from exc
+
+    def get_game_months(self, username: str) -> list[tuple[int, int]]:
+        """(year, month) for every month the player has games in, oldest first."""
+        data = self._get(f"/player/{_slug(username)}/games/archives", username)
+        try:
+            months = [ARCHIVE_RE.search(url) for url in data["archives"]]
+            return [(int(m[1]), int(m[2])) for m in months if m]
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+            raise ChessComResponseError(
+                "chess.com returned an unexpected game archive list."
+            ) from exc
+
+    def get_month_games(self, username: str, year: int, month: int) -> list[Game]:
+        """The player's finished games in one month, oldest first."""
+        data = self._get(f"/player/{_slug(username)}/games/{year:04d}/{month:02d}", username)
+        try:
+            return [Game.from_api(game) for game in data["games"]]
+        except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+            raise ChessComResponseError(
+                "chess.com returned unexpected game data."
             ) from exc
 
     def _get(self, path: str, username: str | None = None) -> dict:

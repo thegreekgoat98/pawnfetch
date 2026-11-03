@@ -112,6 +112,59 @@ def test_service_caches_leaderboards():
     assert first.get("live_blitz")[0].username == "Hikaru"
 
 
+def mock_games(months_with_games=(8, 9, 10)):
+    base = "https://api.chess.com/pub/player/testplayer/games"
+    respx.get(f"{base}/archives").mock(return_value=httpx.Response(200, json=load("game_archives.json")))
+    month = httpx.Response(200, json=load("games_month.json"))
+    return {m: respx.get(f"{base}/2026/{m:02d}").mock(return_value=month) for m in months_with_games}
+
+
+@respx.mock
+def test_openings_use_newest_months_until_enough_games(monkeypatch):
+    import web.app.service as service_module
+
+    monkeypatch.setattr(service_module, "OPENINGS_GAMES", 15)  # each month has 11 games
+    routes = mock_games()
+    service = PlayerService(ChessComClient())
+
+    summary = service.get_openings(" TestPlayer ")
+    again = service.get_openings("testplayer")
+
+    assert again is summary  # cached
+    assert [routes[m].call_count for m in (10, 9, 8)] == [1, 1, 0]  # 22 games was enough
+    assert summary.games == 9  # newest 15: 4 from Sep (1 named) + 11 from Oct (8 named)
+
+
+@respx.mock
+def test_openings_do_not_queue_behind_another_download():
+    from web.app.service import ServiceBusyError
+
+    mock_games()
+    service = PlayerService(ChessComClient())
+    cached = service.get_openings("testplayer")
+
+    service._games.acquire()  # pretend another player's games are downloading
+    try:
+        assert service.get_openings("testplayer") is cached  # cached results still work
+        with pytest.raises(ServiceBusyError):
+            service.get_openings("someone-else")
+    finally:
+        service._games.release()
+
+
+@respx.mock
+def test_openings_downloads_do_not_block_profile_lookups():
+    respx.get(f"{API}/hikaru").mock(return_value=httpx.Response(200, json=load("profile_hikaru.json")))
+    respx.get(f"{API}/hikaru/stats").mock(return_value=httpx.Response(200, json=load("stats_hikaru.json")))
+    service = PlayerService(ChessComClient())
+
+    service._games.acquire()
+    try:
+        assert service.get_player("hikaru").profile.name == "Hikaru Nakamura"
+    finally:
+        service._games.release()
+
+
 def test_duration_formats():
     assert duration(45) == "45s"
     assert duration(600) == "10m"

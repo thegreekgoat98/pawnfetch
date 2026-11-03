@@ -3,7 +3,7 @@
 {% block title %}{{ profile.name or profile.username }} (@{{ profile.username }}) — pawnfetch{% endblock %}
 
 {% block content %}
-{% from "_macros.html" import mode_card, pill with context %}
+{% from "_macros.html" import mode_card, pill, openings_loading with context %}
 <div data-player="{{ profile.username }}" class="mx-auto w-full max-w-6xl px-5 py-10">
   <section class="rounded-3xl border-2 border-ink bg-surface p-6 shadow-[8px_8px_0_0_var(--accent)] sm:p-8">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -84,5 +84,7 @@
     {% endif %}
   </div>
   {% endif %}
+
+  {{ openings_loading("/player/" ~ profile.username|lower|urlencode ~ "/openings") }}
 </div>
 {% endblock %}

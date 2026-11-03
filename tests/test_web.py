@@ -13,14 +13,16 @@ from pawnfetch.chesscom.client import (
     PlayerNotFoundError,
 )
 from pawnfetch.chesscom.models import (
+    Game,
     Leaderboards,
     PlayerProfile,
     PlayerStats,
     Streamer,
 )
 from web.app.main import create_app
+from web.app.openings import summarize
 from web.app.puzzles import PuzzleBank, build, read_rows
-from web.app.service import PlayerData
+from web.app.service import PlayerData, ServiceBusyError
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -51,6 +53,12 @@ class FakeService:
         if self.error:
             raise self.error
         return [Streamer.from_api(s) for s in fixture("streamers.json")["streamers"]]
+
+    def get_openings(self, username: str):
+        if self.error:
+            raise self.error
+        games = [Game.from_api(g) for g in fixture("games_month.json")["games"]]
+        return summarize(username, games, min_games=2)
 
     def close(self) -> None:
         pass
@@ -168,6 +176,62 @@ def test_unknown_page_uses_error_template():
 
 def test_invalid_player_username_is_404():
     assert client.get("/player/a%20b").status_code == 404
+
+
+def test_player_page_loads_openings_separately():
+    text = client.get("/player/hikaru").text
+    assert 'hx-get="/player/hikaru/openings"' in text
+    assert 'hx-trigger="load"' in text
+    assert "Reading recent games" in text
+
+
+def test_openings_fragment():
+    response = client.get("/player/testplayer/openings")
+    assert response.status_code == 200
+    text = response.text
+    assert "<html" not in text  # a fragment, not a full page
+    assert "From the last 8 games" in text
+    assert "Italian Game" in text and "Mostly Two Knights Defense" in text
+    assert "Caro-Kann Defense" in text and "Sicilian Defense" in text
+    assert "Most played" in text and "Best results" in text and "Needs work" in text
+    assert "hx-get" not in text  # finished: no further loading
+
+
+def test_openings_for_a_player_without_games():
+    assert "No standard chess games" in client.get("/player/nobodyhere/openings").text
+
+
+def test_openings_retry_while_busy():
+    service.error = ServiceBusyError()
+    text = client.get("/player/testplayer/openings").text
+    assert 'hx-get="/player/testplayer/openings?attempt=2"' in text
+    assert "delay:" in text and "trying again" in text
+
+
+@pytest.mark.parametrize("error", [ServiceBusyError(), ChessComRateLimitError("slow down")])
+def test_openings_stop_retrying_after_the_last_attempt(error):
+    service.error = error
+    text = client.get("/player/testplayer/openings", params={"attempt": 8}).text
+    assert "hx-get" not in text
+    assert "Reload the page in a minute" in text
+
+
+@pytest.mark.parametrize(
+    ("error", "message"),
+    [
+        (PlayerNotFoundError("ghost"), "no games for this player"),
+        (ChessComConnectionError("offline"), "load this player"),
+    ],
+)
+def test_openings_errors(error, message):
+    service.error = error
+    response = client.get("/player/ghost/openings")
+    assert response.status_code == 200  # htmx only swaps successful responses
+    assert message in response.text
+
+
+def test_openings_invalid_username_is_404():
+    assert client.get("/player/a%20b/openings").status_code == 404
 
 
 def test_static_assets_served():

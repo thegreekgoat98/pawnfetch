@@ -73,6 +73,19 @@
 <span class="rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-bold {{ classes }}">{{ text }}</span>
 {% endmacro %}
 
+{# The openings section while it loads; htmx fetches `url` and replaces the whole section. #}
+{% macro openings_loading(url, delay=0) %}
+<section id="openings" aria-labelledby="openings-heading" aria-busy="true"
+         hx-get="{{ url }}" hx-trigger="load{% if delay %} delay:{{ delay }}s{% endif %}" hx-swap="outerHTML">
+  <h2 id="openings-heading" class="mb-4 mt-12 text-2xl font-black tracking-tight">Openings</h2>
+  <div class="flex items-center gap-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">
+    <span class="size-3 animate-pulse rounded-full bg-accent" aria-hidden="true"></span>
+    {{ "Busy right now, trying again in a moment…" if delay else "Reading recent games from chess.com…" }}
+  </div>
+  <noscript><p class="mt-2 text-sm text-muted">Opening stats need JavaScript.</p></noscript>
+</section>
+{% endmacro %}
+
 {% macro trend(change, unit) %}
 {% if change > 0 %}
 <span class="text-xs font-bold tabular-nums text-win"><span aria-hidden="true">▲</span>{{ change }}<span class="sr-only"> {{ unit }} up</span></span>

@@ -288,3 +288,49 @@ def test_malformed_streamers_raise_response_error():
 
     with ChessComClient() as client, pytest.raises(ChessComResponseError):
         client.get_streamers()
+
+
+@respx.mock
+def test_get_game_months():
+    respx.get("https://api.chess.com/pub/player/testplayer/games/archives").mock(
+        return_value=httpx.Response(200, json=load_fixture("game_archives.json"))
+    )
+
+    with ChessComClient() as client:
+        assert client.get_game_months(" TestPlayer ") == [(2026, 8), (2026, 9), (2026, 10)]
+
+
+@respx.mock
+def test_get_month_games():
+    route = respx.get("https://api.chess.com/pub/player/testplayer/games/2026/09").mock(
+        return_value=httpx.Response(200, json=load_fixture("games_month.json"))
+    )
+
+    with ChessComClient() as client:
+        games = client.get_month_games("testplayer", 2026, 9)
+
+    assert route.called
+    assert len(games) == 11
+    first = games[0]
+    assert (first.white.username, first.white.result, first.black.result) == ("TestPlayer", "win", "resigned")
+    assert first.eco_url.endswith("Italian-Game-Two-Knights-Defense-4.d4")
+    assert (first.rules, first.time_class, first.rated) == ("chess", "blitz", True)
+    assert games[9].eco_url is None
+
+
+@respx.mock
+def test_game_months_for_unknown_player_is_not_found():
+    respx.get("https://api.chess.com/pub/player/ghost/games/archives").mock(return_value=httpx.Response(404))
+
+    with ChessComClient() as client, pytest.raises(PlayerNotFoundError):
+        client.get_game_months("ghost")
+
+
+@respx.mock
+def test_malformed_games_raise_response_error():
+    respx.get("https://api.chess.com/pub/player/x12/games/2026/09").mock(
+        return_value=httpx.Response(200, json={"games": [{"url": "no players"}]})
+    )
+
+    with ChessComClient() as client, pytest.raises(ChessComResponseError):
+        client.get_month_games("x12", 2026, 9)

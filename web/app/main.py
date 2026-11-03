@@ -28,10 +28,13 @@ from web.app.puzzles import (
     PuzzleBank,
     PuzzlesUnavailableError,
 )
-from web.app.service import PlayerService
+from web.app.service import PlayerService, ServiceBusyError
 
 BASE_DIR = Path(__file__).parent
 USERNAME_RE = re.compile(r"[A-Za-z0-9_-]{3,25}")
+# When chess.com or the game downloader is busy, the openings section retries itself this
+# many times, a few seconds apart, before giving up with a message.
+OPENINGS_ATTEMPTS = 8
 FEATURED_PLAYERS = (
     "hikaru",
     "magnuscarlsen",
@@ -139,6 +142,28 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
         return templates.TemplateResponse(
             request, "player.html", {"profile": data.profile, "stats": data.stats}
         )
+
+    # The openings section is loaded by htmx after the player page appears, because it reads
+    # up to 3 months of games. It always answers 200 with an HTML fragment (htmx only swaps
+    # successful responses): the stats, an error message, or a placeholder that retries.
+    @app.get("/player/{username}/openings", response_class=HTMLResponse, response_model=None)
+    def player_openings(request: Request, username: str, attempt: int = 1) -> Response:
+        if not USERNAME_RE.fullmatch(username):
+            raise StarletteHTTPException(status_code=404)
+        context: dict = {"summary": None, "error": None, "retry_url": None}
+        try:
+            context["summary"] = player_service.get_openings(username)
+        except (ServiceBusyError, ChessComRateLimitError):
+            if 0 < attempt < OPENINGS_ATTEMPTS:
+                context["retry_url"] = f"/player/{username.lower()}/openings?attempt={attempt + 1}"
+                context["retry_delay"] = round(random.uniform(2, 5), 1)  # spread the retries out
+            else:
+                context["error"] = "Lots of people are looking up players right now. Reload the page in a minute."
+        except PlayerNotFoundError:
+            context["error"] = "chess.com has no games for this player."
+        except ChessComError:
+            context["error"] = "Couldn't load this player's games from chess.com."
+        return templates.TemplateResponse(request, "_openings.html", context)
 
     @app.get("/compare", response_class=HTMLResponse, response_model=None)
     async def compare_form(request: Request, a: str = "", b: str = "") -> Response:

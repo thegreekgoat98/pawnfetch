@@ -247,6 +247,44 @@ class Streamer:
         )
 
 
+@dataclass
+class GamePlayer:
+    username: str
+    rating: int | None = None
+    result: str = ""  # chess.com result code: "win", "checkmated", "agreed", ...
+
+    @classmethod
+    def from_api(cls, data: dict) -> GamePlayer:
+        return cls(username=data["username"], rating=data.get("rating"), result=data.get("result", ""))
+
+
+@dataclass
+class Game:
+    """One finished game from a player's monthly archive. The PGN is not kept."""
+
+    url: str
+    white: GamePlayer
+    black: GamePlayer
+    end_time: datetime | None = None
+    time_class: str = ""  # "bullet", "blitz", "rapid", "daily"
+    rules: str = "chess"  # "chess" for standard games; "chess960" etc. for variants
+    rated: bool = False
+    eco_url: str | None = None  # names the opening, e.g. .../openings/Caro-Kann-Defense
+
+    @classmethod
+    def from_api(cls, data: dict) -> Game:
+        return cls(
+            url=data.get("url", ""),
+            white=GamePlayer.from_api(data["white"]),
+            black=GamePlayer.from_api(data["black"]),
+            end_time=_to_datetime(data.get("end_time")),
+            time_class=data.get("time_class", ""),
+            rules=data.get("rules", "chess"),
+            rated=bool(data.get("rated")),
+            eco_url=data.get("eco"),
+        )
+
+
 def _trend(trend: dict | None) -> int:
     if not trend:
         return 0
