@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import random
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -17,8 +18,9 @@ from pawnfetch.chesscom.client import (
     ChessComRateLimitError,
     PlayerNotFoundError,
 )
-from web.app import filters
-from web.app.compare import build_sections, tally
+from web.app import cards, filters
+from web.app.cache import TTLCache
+from web.app.compare import build_sections, odds_rows, tally
 from web.app.leaderboards import BOARDS, BOARDS_BY_SLUG, DEFAULT_BOARD
 from web.app.puzzles import (
     DEFAULT_LEVEL,
@@ -28,27 +30,16 @@ from web.app.puzzles import (
     PuzzleBank,
     PuzzlesUnavailableError,
 )
+from web.app.quotes import random_quote
 from web.app.service import PlayerService, ServiceBusyError
 
 BASE_DIR = Path(__file__).parent
 USERNAME_RE = re.compile(r"[A-Za-z0-9_-]{3,25}")
-# When chess.com or the game downloader is busy, the openings section retries itself this
-# many times, a few seconds apart, before giving up with a message.
-OPENINGS_ATTEMPTS = 8
-FEATURED_PLAYERS = (
-    "hikaru",
-    "magnuscarlsen",
-    "fabianocaruana",
-    "gothamchess",
-    "anishgiri",
-    "firouzja2003",
-    "lachesisq",
-    "gmwso",
-    "nihalsarin",
-    "levonaronian",
-    "chesswarrior7197",
-    "ericrosen",
-)
+# When chess.com or the game downloader is busy, sections built from recent games (openings,
+# roast, head-to-head) retry themselves this many times, a few seconds apart, then give up.
+DEFERRED_ATTEMPTS = 8
+IMAGE_TTL = 30 * 60
+FALLBACK_IMAGE_TTL = 60
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 for _name in ("intcomma", "date_short", "date_long", "duration", "ago"):
@@ -78,31 +69,40 @@ def lookup_error(request: Request, exc: ChessComError) -> Response:
     return render_error(request, 502, "chess.com didn't answer", str(exc))
 
 
-def featured_card(service: PlayerService) -> dict | None:
-    """A random featured player for the home page; None hides the card if chess.com is unavailable."""
-    for username in random.sample(FEATURED_PLAYERS, k=2):
-        try:
-            data = service.get_player(username)
-        except PlayerNotFoundError:
-            continue  # renamed or closed account: try the next candidate
-        except ChessComError:
-            return None
-        modes = [m for m in (data.stats.rapid, data.stats.blitz, data.stats.bullet) if m]
-        total = sum(m.total for m in modes)
-        split = None
-        if total:
-            split = (
-                sum(m.wins for m in modes) / total * 100,
-                sum(m.draws for m in modes) / total * 100,
-                sum(m.losses for m in modes) / total * 100,
-            )
-        return {"data": data, "split": split}
-    return None
+def deferred(
+    request: Request, template: str, load: Callable[[], dict], retry_path: str, attempt: int
+) -> Response:
+    """An htmx fragment built from a player's recent games: the content, an error, or a
+    placeholder that retries. Always 200, because htmx only swaps successful responses."""
+    context: dict = {"error": None, "retry_url": None}
+    try:
+        context.update(load())
+    except (ServiceBusyError, ChessComRateLimitError):
+        if 0 < attempt < DEFERRED_ATTEMPTS:
+            context["retry_url"] = f"{retry_path}?attempt={attempt + 1}"
+            context["retry_delay"] = round(random.uniform(2, 5), 1)  # spread the retries out
+        else:
+            context["error"] = "Lots of people are looking up players right now. Reload the page in a minute."
+    except PlayerNotFoundError:
+        context["error"] = "chess.com has no games for this player."
+    except ChessComError:
+        context["error"] = "Couldn't load this player's games from chess.com."
+    return templates.TemplateResponse(request, template, context)
+
+
+@lru_cache(maxsize=1)
+def default_image() -> bytes:
+    return cards.default_card()
+
+
+def png(data: bytes, max_age: int = IMAGE_TTL) -> Response:
+    return Response(data, media_type="image/png", headers={"Cache-Control": f"public, max-age={max_age}"})
 
 
 def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None = None) -> FastAPI:
     player_service = service or PlayerService()
     puzzle_bank = puzzles or PuzzleBank()
+    images = TTLCache(max_entries=200)  # drawn share images, ~50-100 KB each
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -114,7 +114,7 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
 
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request) -> Response:
-        return templates.TemplateResponse(request, "home.html", {"featured": featured_card(player_service)})
+        return templates.TemplateResponse(request, "home.html", {"quote": random_quote()})
 
     @app.get("/search", response_model=None)
     def search(request: Request, u: str = "") -> Response:
@@ -123,7 +123,7 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
             context = {
                 "query": username[:25],
                 "error": "Usernames are 3-25 characters: letters, numbers, - or _.",
-                "featured": featured_card(player_service),
+                "quote": random_quote(),
             }
             return templates.TemplateResponse(request, "home.html", context, status_code=422)
         return RedirectResponse(f"/player/{username.lower()}", status_code=303)
@@ -143,27 +143,46 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
             request, "player.html", {"profile": data.profile, "stats": data.stats}
         )
 
-    # The openings section is loaded by htmx after the player page appears, because it reads
-    # up to 3 months of games. It always answers 200 with an HTML fragment (htmx only swaps
-    # successful responses): the stats, an error message, or a placeholder that retries.
+    def valid(*names: str) -> None:
+        if not all(USERNAME_RE.fullmatch(name) for name in names):
+            raise StarletteHTTPException(status_code=404)
+
+    # Sections built from recent games are loaded by htmx after the page appears, because
+    # reading up to 3 months of games takes seconds (see `deferred`).
     @app.get("/player/{username}/openings", response_class=HTMLResponse, response_model=None)
     def player_openings(request: Request, username: str, attempt: int = 1) -> Response:
+        valid(username)
+        name = username.lower()
+        load = lambda: {"summary": player_service.get_openings(name)}
+        return deferred(request, "_openings.html", load, f"/player/{name}/openings", attempt)
+
+    @app.get("/roast", response_model=None)
+    async def roast_form(u: str = "") -> Response:
+        username = u.strip()
         if not USERNAME_RE.fullmatch(username):
-            raise StarletteHTTPException(status_code=404)
-        context: dict = {"summary": None, "error": None, "retry_url": None}
+            return RedirectResponse("/", status_code=303)
+        return RedirectResponse(f"/roast/{username.lower()}", status_code=303)
+
+    @app.get("/roast/{username}", response_class=HTMLResponse, response_model=None)
+    def roast(request: Request, username: str) -> Response:
+        valid(username)
+        if username != username.lower():
+            return RedirectResponse(f"/roast/{username.lower()}", status_code=308)
         try:
-            context["summary"] = player_service.get_openings(username)
-        except (ServiceBusyError, ChessComRateLimitError):
-            if 0 < attempt < OPENINGS_ATTEMPTS:
-                context["retry_url"] = f"/player/{username.lower()}/openings?attempt={attempt + 1}"
-                context["retry_delay"] = round(random.uniform(2, 5), 1)  # spread the retries out
-            else:
-                context["error"] = "Lots of people are looking up players right now. Reload the page in a minute."
-        except PlayerNotFoundError:
-            context["error"] = "chess.com has no games for this player."
-        except ChessComError:
-            context["error"] = "Couldn't load this player's games from chess.com."
-        return templates.TemplateResponse(request, "_openings.html", context)
+            data = player_service.get_player(username)
+        except ChessComError as exc:
+            return lookup_error(request, exc)
+        return templates.TemplateResponse(request, "roast.html", {"profile": data.profile})
+
+    @app.get("/roast/{username}/card", response_class=HTMLResponse, response_model=None)
+    def roast_card(request: Request, username: str, attempt: int = 1) -> Response:
+        valid(username)
+        name = username.lower()
+
+        def load() -> dict:
+            return {"roast": player_service.get_roast(name), "profile": player_service.get_player(name).profile}
+
+        return deferred(request, "_roast.html", load, f"/roast/{name}/card", attempt)
 
     @app.get("/compare", response_class=HTMLResponse, response_model=None)
     async def compare_form(request: Request, a: str = "", b: str = "") -> Response:
@@ -176,17 +195,21 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
         elif a.lower() == b.lower():
             context["error"] = "Pick two different players."
         else:
-            return RedirectResponse(f"/compare/{a.lower()}/{b.lower()}", status_code=303)
+            return RedirectResponse(f"/vs/{a.lower()}/{b.lower()}", status_code=303)
         return templates.TemplateResponse(request, "compare.html", context, status_code=422)
 
-    @app.get("/compare/{a}/{b}", response_class=HTMLResponse, response_model=None)
-    def compare(request: Request, a: str, b: str) -> Response:
-        if not (USERNAME_RE.fullmatch(a) and USERNAME_RE.fullmatch(b)):
-            raise StarletteHTTPException(status_code=404)
+    @app.get("/compare/{a}/{b}", response_model=None)
+    async def old_compare_url(a: str, b: str) -> Response:
+        valid(a, b)
+        return RedirectResponse(f"/vs/{a.lower()}/{b.lower()}", status_code=301)
+
+    @app.get("/vs/{a}/{b}", response_class=HTMLResponse, response_model=None)
+    def vs(request: Request, a: str, b: str) -> Response:
+        valid(a, b)
         if a.lower() == b.lower():
             return RedirectResponse(f"/player/{a.lower()}", status_code=303)
         if (a, b) != (a.lower(), b.lower()):
-            return RedirectResponse(f"/compare/{a.lower()}/{b.lower()}", status_code=308)
+            return RedirectResponse(f"/vs/{a.lower()}/{b.lower()}", status_code=308)
         try:
             left = player_service.get_player(a)
             right = player_service.get_player(b)
@@ -198,10 +221,59 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
             "right": right,
             "sections": sections,
             "score": tally(sections),
+            "odds": odds_rows(left, right),
             "a": a,
             "b": b,
         }
         return templates.TemplateResponse(request, "compare.html", context)
+
+    @app.get("/vs/{a}/{b}/h2h", response_class=HTMLResponse, response_model=None)
+    def vs_head_to_head(request: Request, a: str, b: str, attempt: int = 1) -> Response:
+        valid(a, b)
+        a, b = a.lower(), b.lower()
+        load = lambda: {"h2h": player_service.get_head_to_head(a, b), "a": a, "b": b}
+        return deferred(request, "_h2h.html", load, f"/vs/{a}/{b}/h2h", attempt)
+
+    # Share images. Link previews (Discord, X, WhatsApp...) fetch these without running
+    # JavaScript, so they're drawn on the server. If chess.com is slow or busy, the generic
+    # image is served briefly instead of an error.
+    @app.get("/og/default.png", response_model=None)
+    async def og_default() -> Response:
+        return png(default_image())
+
+    @app.get("/og/roast/{username}.png", response_model=None)
+    def og_roast(username: str) -> Response:
+        valid(username)
+        name = username.lower()
+        key = f"roast:{name}"
+        image = images.get(key)
+        if image is None:
+            try:
+                profile = player_service.get_player(name).profile
+                found = player_service.get_roast(name)
+            except (ChessComError, ServiceBusyError):
+                return png(default_image(), FALLBACK_IMAGE_TTL)
+            if found is None:
+                return png(default_image(), FALLBACK_IMAGE_TTL)
+            image = cards.roast_card(profile, found)
+            images.set(key, image, IMAGE_TTL)
+        return png(image)  # type: ignore[arg-type]
+
+    @app.get("/og/vs/{a}/{b}.png", response_model=None)
+    def og_vs(a: str, b: str) -> Response:
+        valid(a, b)
+        a, b = a.lower(), b.lower()
+        key = f"vs:{a}:{b}"
+        image = images.get(key)
+        if image is None:
+            try:
+                left, right = player_service.get_player(a), player_service.get_player(b)
+            except ChessComError:
+                return png(default_image(), FALLBACK_IMAGE_TTL)
+            rows = [(o.key, o.left, o.right, o.left_pct) for o in odds_rows(left, right)]
+            image = cards.vs_card(left.profile, right.profile, rows)
+            images.set(key, image, IMAGE_TTL)
+        return png(image)  # type: ignore[arg-type]
 
     @app.get("/leaderboards", response_model=None)
     async def leaderboards_index() -> Response:

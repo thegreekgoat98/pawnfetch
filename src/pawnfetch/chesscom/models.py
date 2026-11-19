@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -260,7 +261,10 @@ class GamePlayer:
 
 @dataclass
 class Game:
-    """One finished game from a player's monthly archive. The PGN is not kept."""
+    """One finished game from a player's monthly archive.
+
+    The PGN itself is not kept: only the few facts read from it below.
+    """
 
     url: str
     white: GamePlayer
@@ -270,9 +274,14 @@ class Game:
     rules: str = "chess"  # "chess" for standard games; "chess960" etc. for variants
     rated: bool = False
     eco_url: str | None = None  # names the opening, e.g. .../openings/Caro-Kann-Defense
+    first_move: str | None = None  # White's first move in SAN, e.g. "e4"
+    moves: int = 0  # full moves played (from the final position)
+    start_time: datetime | None = None
 
     @classmethod
     def from_api(cls, data: dict) -> Game:
+        pgn = data.get("pgn") or ""
+        first = _FIRST_MOVE_RE.search(pgn)
         return cls(
             url=data.get("url", ""),
             white=GamePlayer.from_api(data["white"]),
@@ -282,7 +291,28 @@ class Game:
             rules=data.get("rules", "chess"),
             rated=bool(data.get("rated")),
             eco_url=data.get("eco"),
+            first_move=first.group(1) if first else None,
+            moves=_fullmoves(data.get("fen")),
+            start_time=_pgn_start(pgn),
         )
+
+
+_FIRST_MOVE_RE = re.compile(r"(?m)^1\. ([^\s{]+)")
+_PGN_TAG_RE = re.compile(r'\[(UTCDate|UTCTime) "([^"]*)"\]')
+
+
+def _fullmoves(fen: str | None) -> int:
+    """The full-move number from the last field of a FEN, or 0."""
+    last = (fen or "").rsplit(" ", 1)[-1]
+    return int(last) if last.isdigit() else 0
+
+
+def _pgn_start(pgn: str) -> datetime | None:
+    tags = dict(_PGN_TAG_RE.findall(pgn))
+    try:
+        return datetime.strptime(f"{tags['UTCDate']} {tags['UTCTime']} +0000", "%Y.%m.%d %H:%M:%S %z")
+    except (KeyError, ValueError):
+        return None
 
 
 def _trend(trend: dict | None) -> int:

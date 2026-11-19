@@ -51,4 +51,49 @@
       box.hidden = false;
     }
   }
+
+  // Share buttons (see the share_bar macro). The image is the same PNG the server draws for
+  // link previews, so the copied/downloaded picture matches what Discord or X would show.
+  const revealNativeShare = (scope) => {
+    if (!navigator.share) return;
+    for (const button of scope.querySelectorAll("[data-share-native]")) button.hidden = false;
+  };
+  revealNativeShare(document);
+  document.addEventListener("htmx:load", (event) => revealNativeShare(event.detail.elt));
+
+  const fetchImage = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("image " + response.status);
+    return response.blob();
+  };
+
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-share-copy-image], [data-share-copy-link], [data-share-native]");
+    const bar = button && button.closest("[data-share]");
+    if (!bar) return;
+    const status = bar.querySelector("[data-share-status]");
+    const say = (text) => {
+      status.textContent = text;
+    };
+    const image = bar.dataset.image;
+    try {
+      if (button.matches("[data-share-copy-link]")) {
+        await navigator.clipboard.writeText(location.href);
+        say("Link copied.");
+      } else if (button.matches("[data-share-copy-image]")) {
+        if (!window.ClipboardItem || !navigator.clipboard?.write) throw new Error("unsupported");
+        // Passing the promise keeps Safari happy: the copy still counts as part of the click.
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": fetchImage(image) })]);
+        say("Image copied. Paste it anywhere.");
+      } else {
+        const blob = await fetchImage(image);
+        const file = new File([blob], image.split("/").pop(), { type: "image/png" });
+        const data = { title: document.title, url: location.href };
+        await navigator.share(navigator.canShare?.({ files: [file] }) ? { ...data, files: [file] } : data);
+      }
+    } catch (error) {
+      if (error.name === "AbortError") return; // the share sheet was closed
+      say(button.matches("[data-share-copy-image]") ? "Can't copy images here. Use Download instead." : "That didn't work. Try again.");
+    }
+  });
 })();

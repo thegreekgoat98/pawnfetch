@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient
+from markupsafe import escape
 
 from pawnfetch.chesscom.client import (
     ChessComConnectionError,
@@ -19,9 +21,13 @@ from pawnfetch.chesscom.models import (
     PlayerStats,
     Streamer,
 )
+from web.app import cards
 from web.app.main import create_app
 from web.app.openings import summarize
 from web.app.puzzles import PuzzleBank, build, read_rows
+from web.app.quotes import QUOTES
+from web.app.rivals import head_to_head, index_meetings
+from web.app.roast import Roast
 from web.app.service import PlayerData, ServiceBusyError
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -34,6 +40,7 @@ def fixture(name: str) -> dict:
 class FakeService:
     def __init__(self):
         self.error: Exception | None = None
+        self.roast = None
 
     def get_player(self, username: str) -> PlayerData:
         if self.error:
@@ -60,8 +67,30 @@ class FakeService:
         games = [Game.from_api(g) for g in fixture("games_month.json")["games"]]
         return summarize(username, games, min_games=2)
 
+    def get_roast(self, username: str):
+        if self.error:
+            raise self.error
+        return self.roast
+
+    def get_head_to_head(self, username: str, opponent: str):
+        if self.error:
+            raise self.error
+        games = [Game.from_api(g) for g in fixture("games_month.json")["games"]]
+        return head_to_head(index_meetings("testplayer", games).get(opponent, []))
+
     def close(self) -> None:
         pass
+
+
+ROAST = Roast(
+    persona="Caffeinated Bullet Goblin",
+    lines=["90% of games are bullet. Thinking is clearly optional.", "Won 12 in a row once. Peak arrogance unlocked."],
+    games=300,
+    win_pct=52.0,
+    main_mode="Bullet",
+    first=None,
+    last=None,
+)
 
 
 service = FakeService()
@@ -78,8 +107,14 @@ def _puzzle_db(tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
-def _reset_service():
+def _reset_service(monkeypatch):
     service.error = None
+    service.roast = ROAST
+
+    def offline(*args, **kwargs):  # share images must not fetch real avatars in tests
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr(cards.httpx, "get", offline)
 
 
 def test_home_renders_search_form():
@@ -89,33 +124,9 @@ def test_home_renders_search_form():
     assert 'data-theme="dark"' in response.text
 
 
-def test_home_shows_real_ratings_in_featured_card():
-    response = client.get("/")
-    assert "featured player" in response.text
-    assert "3443" in response.text  # blitz rating from the fixture
-
-
-def test_home_hides_featured_card_when_chess_com_fails():
-    service.error = ChessComConnectionError("offline")
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "featured player" not in response.text
-
-
-def test_home_tries_another_player_when_featured_one_is_missing():
-    calls = []
-
-    class FirstMissing(FakeService):
-        def get_player(self, username):
-            calls.append(username)
-            if len(calls) == 1:
-                raise PlayerNotFoundError(username)
-            return super().get_player(username)
-
-    response = TestClient(create_app(FirstMissing())).get("/")
-    assert len(calls) == 2
-    assert calls[0] != calls[1]
-    assert "featured player" in response.text
+def test_home_shows_a_chess_quote():
+    text = client.get("/").text
+    assert any(str(escape(quote)) in text for quote, _author in QUOTES)
 
 
 def test_search_redirects_to_lowercase_player():
@@ -297,7 +308,8 @@ def test_hidden_boards_are_not_routes():
         ("/", "/"),
         ("/player/hikaru", "/"),
         ("/compare", "/compare"),
-        ("/compare/hikaru/magnuscarlsen", "/compare"),
+        ("/vs/hikaru/fabianocaruana", "/compare"),
+        ("/roast/hikaru", "/"),
         ("/leaderboards/blitz", "/leaderboards"),
         ("/puzzles/00008", "/puzzles"),
         ("/streamers", "/streamers"),
@@ -445,3 +457,76 @@ def test_board_assets_and_licences_are_served():
     ):
         assert client.get(f"/static/{path}").status_code == 200, path
     assert client.get("/static/vendor/cm-chessboard/assets/pieces/staunty.svg").status_code == 404
+
+
+PNG_MAGIC = b"\x89PNG"
+
+
+def test_roast_page_defers_the_card_and_sets_the_preview_image():
+    text = client.get("/roast/hikaru").text
+    assert 'hx-get="/roast/hikaru/card"' in text
+    assert 'property="og:image" content="http://testserver/og/roast/hikaru.png"' in text
+
+
+def test_roast_form_and_case_redirect():
+    assert client.get("/roast", params={"u": " Hikaru "}, follow_redirects=False).headers["location"] == "/roast/hikaru"
+    assert client.get("/roast", params={"u": "<b>"}, follow_redirects=False).headers["location"] == "/"
+    response = client.get("/roast/Hikaru", follow_redirects=False)
+    assert (response.status_code, response.headers["location"]) == (308, "/roast/hikaru")
+
+
+def test_roast_card_fragment_shows_persona_lines_and_share_bar():
+    text = client.get("/roast/hikaru/card").text
+    assert "Caffeinated Bullet Goblin" in text
+    assert "Peak arrogance unlocked." in text
+    assert 'data-image="/og/roast/hikaru.png"' in text
+
+
+def test_roast_card_without_enough_games():
+    service.roast = None
+    assert "Not enough games to roast" in client.get("/roast/hikaru/card").text
+
+
+def test_roast_card_retries_while_busy():
+    service.error = ServiceBusyError()
+    assert 'hx-get="/roast/hikaru/card?attempt=2"' in client.get("/roast/hikaru/card").text
+
+
+def test_roast_image_is_a_cached_png():
+    response = client.get("/og/roast/hikaru.png")
+    assert response.headers["content-type"] == "image/png"
+    assert response.content.startswith(PNG_MAGIC)
+    assert response.headers["cache-control"] == "public, max-age=1800"
+
+
+def test_roast_image_falls_back_to_the_generic_card_when_busy():
+    service.error = ServiceBusyError()
+    response = client.get("/og/roast/somebody.png")
+    assert response.content.startswith(PNG_MAGIC)
+    assert response.headers["cache-control"] == "public, max-age=60"
+
+
+def test_old_compare_urls_move_to_vs():
+    response = client.get("/compare/Hikaru/fabianocaruana", follow_redirects=False)
+    assert (response.status_code, response.headers["location"]) == (301, "/vs/hikaru/fabianocaruana")
+
+
+def test_vs_page_shows_odds_share_bar_and_deferred_head_to_head():
+    text = client.get("/vs/hikaru/fabianocaruana").text
+    assert "Tale of the tape" in text
+    assert "Dead even" in text  # the fake service returns the same player twice
+    assert 'data-image="/og/vs/hikaru/fabianocaruana.png"' in text
+    assert 'hx-get="/vs/hikaru/fabianocaruana/h2h"' in text
+    assert 'content="http://testserver/og/vs/hikaru/fabianocaruana.png"' in text
+
+
+def test_head_to_head_fragment():
+    text = client.get("/vs/testplayer/opp4/h2h").text
+    assert "opp4 won" in text
+    assert "https://www.chess.com/game/live/1004" in text
+    assert "Someone send a challenge" in client.get("/vs/testplayer/stranger/h2h").text
+
+
+def test_vs_image_is_a_png():
+    response = client.get("/og/vs/hikaru/fabianocaruana.png")
+    assert response.content.startswith(PNG_MAGIC)

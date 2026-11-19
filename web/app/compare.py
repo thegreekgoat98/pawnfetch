@@ -95,3 +95,28 @@ def tally(sections: list[CompareSection]) -> tuple[int, int]:
         sum(row.winner == "left" for row in rows),
         sum(row.winner == "right" for row in rows),
     )
+
+
+def elo_odds(rating: int, opponent: int) -> float:
+    """The expected score (0-100) for `rating` against `opponent`, by the Elo formula."""
+    return 100 / (1 + 10 ** ((opponent - rating) / 400))
+
+
+@dataclass
+class Odds:
+    key: str  # "rapid", ...
+    title: str
+    left: int | None
+    right: int | None
+    left_pct: float | None  # None unless both players have a rating
+
+
+def odds_rows(a: PlayerData, b: PlayerData) -> list[Odds]:
+    """Ratings and Elo odds for the live time controls either player has played."""
+    rows = []
+    for key, title in MODES[:3]:
+        sa, sb = getattr(a.stats, key), getattr(b.stats, key)
+        ra, rb = sa and sa.rating, sb and sb.rating
+        if ra or rb:
+            rows.append(Odds(key, title, ra, rb, elo_odds(ra, rb) if ra and rb else None))
+    return rows

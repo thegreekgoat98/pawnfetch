@@ -96,6 +96,9 @@ uv run --group web python -m web.app.puzzles import
 
 It's written to `data/puzzles.sqlite`, or to the path in the `PUZZLES_DB` environment variable.
 
+Share images (link previews for roasts and `/vs` pages) are drawn with Pillow using the
+[Inter](https://rsms.me/inter/) font in `web/app/fonts/` (SIL Open Font License).
+
 ## Disclaimer
 
 pawnfetch is an independent project and is not affiliated with or endorsed by Chess.com.

@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}{% if left %}{{ left.profile.username }} vs {{ right.profile.username }}{% else %}Compare players{% endif %} — pawnfetch{% endblock %}
+{% block og_title %}{% if left %}{{ left.profile.name or left.profile.username }} vs {{ right.profile.name or right.profile.username }}: tale of the tape{% else %}{{ super() }}{% endif %}{% endblock %}
+{% block og_description %}{% if left %}Ratings, Elo odds and head-to-head record of @{{ left.profile.username }} and @{{ right.profile.username }} on chess.com.{% else %}{{ super() }}{% endif %}{% endblock %}
+{% block og_image %}{% if left %}og/vs/{{ a|urlencode }}/{{ b|urlencode }}.png{% else %}{{ super() }}{% endif %}{% endblock %}
 
 {% block content %}
-{% from "_macros.html" import player_side with context %}
+{% from "_macros.html" import player_side, deferred_section, share_bar with context %}
 {% set chips = {"rapid": "bg-rapid", "blitz": "bg-blitz", "bullet": "bg-bullet", "daily": "bg-daily", "more": "bg-accent"} %}
 <div class="mx-auto w-full max-w-4xl px-5 py-10">
   {% if not left %}
@@ -28,7 +31,8 @@
   </form>
 
   {% if left %}
-  <section class="mt-10 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
+  <p class="mt-10 text-center text-sm font-black uppercase tracking-[0.3em] text-accent">Tale of the tape</p>
+  <section class="mt-4 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
     {{ player_side(left.profile) }}
     <div class="mx-auto text-center">
       <div class="checker grid size-16 place-items-center rounded-full border-2 border-ink">
@@ -39,11 +43,52 @@
     {{ player_side(right.profile) }}
   </section>
 
+  {% if odds %}
+  {% set favoured = odds | selectattr("left_pct") | list %}
+  {% set left_fav = favoured | selectattr("left_pct", "gt", 50) | list | length %}
+  {% set right_fav = favoured | selectattr("left_pct", "lt", 50) | list | length %}
+  <section aria-labelledby="odds-heading" class="mt-8 rounded-2xl border-2 border-ink bg-surface p-5 shadow-[5px_5px_0_0_var(--bullet)]">
+    <h2 id="odds-heading" class="text-sm font-bold uppercase tracking-wide text-muted">Who wins? Elo odds</h2>
+    {% if favoured %}
+    <p class="mt-1 text-lg font-black">
+      {% if left_fav > right_fav %}{{ left.profile.username }} is the favourite in {{ left_fav }} of {{ favoured|length }}.
+      {% elif right_fav > left_fav %}{{ right.profile.username }} is the favourite in {{ right_fav }} of {{ favoured|length }}.
+      {% else %}Dead even. Somebody has to play it out.{% endif %}
+    </p>
+    {% endif %}
+    <div class="mt-4 space-y-4">
+      {% for o in odds %}
+      <div>
+        <div class="flex items-baseline justify-between text-sm font-bold">
+          <span class="tabular-nums">{{ o.left or "—" }}{% if o.left_pct is not none %} <span class="text-muted">· {{ '%.0f' % o.left_pct }}%</span>{% endif %}</span>
+          <span class="uppercase tracking-wide text-muted">{{ o.title }}</span>
+          <span class="tabular-nums">{% if o.left_pct is not none %}<span class="text-muted">{{ '%.0f' % (100 - o.left_pct) }}% · </span>{% endif %}{{ o.right or "—" }}</span>
+        </div>
+        {% if o.left_pct is not none %}
+        <div class="mt-1.5 flex h-3 overflow-hidden rounded-full border-2 border-ink" role="img"
+             aria-label="{{ left.profile.username }} expected to score {{ '%.0f' % o.left_pct }}% in {{ o.title|lower }}">
+          <span class="bg-{{ o.key }}" style="width: {{ '%.2f' % o.left_pct }}%"></span><span class="flex-1 bg-surface-2"></span>
+        </div>
+        {% else %}
+        <p class="mt-1 text-xs text-muted">Only one of them plays {{ o.title|lower }}.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <p class="mt-4 text-xs text-muted">The expected score from the rating gap, counting a draw as half a win.</p>
+  </section>
+  {% endif %}
+
+  {{ share_bar("/og/vs/" ~ a|urlencode ~ "/" ~ b|urlencode ~ ".png", "pawnfetch-" ~ a ~ "-vs-" ~ b ~ ".png") }}
+
+  {{ deferred_section("h2h", "/vs/" ~ a|urlencode ~ "/" ~ b|urlencode ~ "/h2h", heading="Head to head") }}
+
+  <h2 class="mt-12 text-2xl font-black tracking-tight">The numbers</h2>
   {% for section in sections %}
-  <section class="mt-8 rounded-2xl border-2 border-line bg-surface p-5">
-    <h2 class="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+  <section class="mt-5 rounded-2xl border-2 border-line bg-surface p-5">
+    <h3 class="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
       <span class="size-3 rounded-sm {{ chips[section.key] }}"></span>{{ section.title }}
-    </h2>
+    </h3>
     <div class="divide-y divide-line">
       {% for row in section.rows %}
       <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2.5">

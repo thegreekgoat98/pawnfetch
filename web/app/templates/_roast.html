@@ -1,0 +1,46 @@
+{# The roast card on /roast/{username}, swapped in by htmx (see deferred_section). #}
+{% from "_macros.html" import deferred_section, share_bar, avatar %}
+{% if retry_url %}
+{{ deferred_section("roast", retry_url, retry_delay) }}
+{% else %}
+<section id="roast" class="mt-8">
+  {% if error %}
+  <p class="rounded-2xl border-2 border-line bg-surface p-5 text-muted">{{ error }}</p>
+  {% elif not roast %}
+  <p class="rounded-2xl border-2 border-line bg-surface p-5 text-muted">
+    Not enough games to roast. {{ profile.username }} needs at least 20 standard games in the last 3 months. Even the jokes need data.
+  </p>
+  {% else %}
+  {% set slug = profile.username|lower|urlencode %}
+  {% set bullets = ["bg-rapid", "bg-blitz", "bg-bullet", "bg-daily"] %}
+  <article class="rounded-3xl border-2 border-ink bg-surface p-6 shadow-[8px_8px_0_0_var(--accent)] sm:p-8">
+    <div class="flex items-center gap-4">
+      {{ avatar(profile.avatar, "size-16 rounded-2xl") }}
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xl font-black">
+          {% if profile.title %}<span class="mr-1.5 rounded-lg bg-rapid px-2 py-0.5 text-sm font-black text-[#1b1530]">{{ profile.title }}</span>{% endif %}{{ profile.name or profile.username }}
+        </p>
+        <p class="truncate text-sm text-muted">@{{ profile.username }}</p>
+      </div>
+      <span class="hidden rounded-lg bg-accent px-2.5 py-1 text-xs font-black uppercase tracking-wide text-accent-ink sm:inline">Roasted</span>
+    </div>
+
+    <p class="mt-7 text-xs font-bold uppercase tracking-wide text-muted">Chess persona</p>
+    <h2 class="text-3xl font-black tracking-tight text-accent sm:text-4xl">{{ roast.persona }}</h2>
+
+    <ul class="mt-6 space-y-3">
+      {% for line in roast.lines %}
+      <li class="flex gap-3 text-lg font-semibold leading-snug">
+        <span class="mt-1.5 size-3.5 shrink-0 rounded {{ bullets[loop.index0 % 4] }}" aria-hidden="true"></span>{{ line }}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <p class="mt-7 border-t-2 border-line pt-4 text-sm font-semibold text-muted">
+      {{ roast.games }} games · {{ '%.0f' % roast.win_pct }}% won · mostly {{ roast.main_mode|lower }}{% if roast.first %} · {% set first, last = roast.first|date_short, roast.last|date_short %}{{ first if first == last else first ~ " – " ~ last }}{% endif %}
+    </p>
+  </article>
+  {{ share_bar("/og/roast/" ~ slug ~ ".png", "pawnfetch-roast-" ~ slug ~ ".png") }}
+  {% endif %}
+</section>
+{% endif %}

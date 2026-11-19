@@ -15,16 +15,19 @@ from pawnfetch.chesscom.models import (
 )
 from web.app.cache import TTLCache
 from web.app.openings import OpeningsSummary, summarize
+from web.app.rivals import HeadToHead, Meeting, head_to_head, index_meetings
+from web.app.roast import Roast, build_roast
 
 PLAYER_TTL = 15 * 60
 NOT_FOUND_TTL = 60
 LEADERBOARDS_TTL = 30 * 60
 STREAMERS_TTL = 5 * 60  # chess.com refreshes live status about every 5 minutes
-OPENINGS_TTL = 30 * 60
-# Opening stats use the player's most recent games: newest months first, until this many
-# games or this many months. A very active player can have 600+ games (2-3 MB) in a month.
-OPENINGS_GAMES = 300
-OPENINGS_MONTHS = 3
+GAMES_TTL = 30 * 60
+# Openings, roasts and head-to-heads use the player's most recent games: newest months
+# first, until this many games or this many months. A very active player can have 600+
+# games (2-3 MB) in a month.
+RECENT_GAMES = 300
+RECENT_MONTHS = 3
 
 T = TypeVar("T")
 
@@ -39,6 +42,15 @@ class ServiceBusyError(Exception):
 class PlayerData:
     profile: PlayerProfile
     stats: PlayerStats
+
+
+@dataclass
+class GameInsights:
+    """Everything built from one download of a player's recent games. The games aren't kept."""
+
+    openings: OpeningsSummary
+    roast: Roast | None  # None: too few games
+    meetings: dict[str, list[Meeting]]  # opponent -> games against them
 
 
 class PlayerService:
@@ -92,8 +104,19 @@ class PlayerService:
         return self._cached("streamers", STREAMERS_TTL, self._client.get_streamers)
 
     def get_openings(self, username: str) -> OpeningsSummary:
+        return self._insights(username).openings
+
+    def get_roast(self, username: str) -> Roast | None:
+        return self._insights(username).roast
+
+    def get_head_to_head(self, username: str, opponent: str) -> HeadToHead:
+        """`username`'s record against `opponent`, from `username`'s recent games."""
+        meetings = self._insights(username).meetings.get(opponent.strip().lower(), [])
+        return head_to_head(meetings)
+
+    def _insights(self, username: str) -> GameInsights:
         name = username.strip().lower()
-        key = f"openings:{name}"
+        key = f"games:{name}"
         cached = self._cache.get(key)
         if cached is not None:
             return cached  # type: ignore[return-value]
@@ -104,19 +127,24 @@ class PlayerService:
         try:
             cached = self._cache.get(key)  # filled while we were checking?
             if cached is None:
-                cached = summarize(name, self._recent_games(name))
-                self._cache.set(key, cached, OPENINGS_TTL)
+                games = self._recent_games(name)
+                cached = GameInsights(
+                    openings=summarize(name, games),
+                    roast=build_roast(name, games),
+                    meetings=index_meetings(name, games),
+                )
+                self._cache.set(key, cached, GAMES_TTL)
         finally:
             self._games.release()
         return cached  # type: ignore[return-value]
 
     def _recent_games(self, username: str) -> list[Game]:
         games: list[Game] = []
-        for year, month in reversed(self._client.get_game_months(username)[-OPENINGS_MONTHS:]):
+        for year, month in reversed(self._client.get_game_months(username)[-RECENT_MONTHS:]):
             games = self._client.get_month_games(username, year, month) + games
-            if len(games) >= OPENINGS_GAMES:
+            if len(games) >= RECENT_GAMES:
                 break
-        return games[-OPENINGS_GAMES:]
+        return games[-RECENT_GAMES:]
 
     def _cached(self, key: str, ttl: float, fetch: Callable[[], T]) -> T:
         cached = self._cache.get(key)

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -316,7 +317,9 @@ def test_get_month_games():
     assert first.eco_url.endswith("Italian-Game-Two-Knights-Defense-4.d4")
     assert (first.rules, first.time_class, first.rated) == ("chess", "blitz", True)
     assert games[9].eco_url is None
-
+    assert (first.first_move, first.moves) == ("e4", 24)
+    assert first.start_time == datetime(2026, 10, 27, 17, 46, 40, tzinfo=timezone.utc)
+    assert (games[1].first_move, games[1].moves, games[1].start_time) == (None, 0, None)
 
 @respx.mock
 def test_game_months_for_unknown_player_is_not_found():

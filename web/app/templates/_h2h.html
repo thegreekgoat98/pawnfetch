@@ -1,0 +1,46 @@
+{# The head-to-head section of /vs/{a}/{b}, swapped in by htmx (see deferred_section). #}
+{% from "_macros.html" import deferred_section %}
+{% if retry_url %}
+{{ deferred_section("h2h", retry_url, retry_delay, heading="Head to head") }}
+{% else %}
+<section id="h2h" aria-labelledby="h2h-heading">
+  <h2 id="h2h-heading" class="mb-1 mt-12 text-2xl font-black tracking-tight">Head to head</h2>
+  {% if error %}
+  <p class="mt-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">{{ error }}</p>
+  {% elif not h2h.games %}
+  <p class="mt-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">
+    No games between them in {{ a }}'s last few months. Someone send a challenge.
+  </p>
+  {% else %}
+  <p class="mb-4 text-sm text-muted">From {{ a }}'s games in the last few months.</p>
+  <div class="grid grid-cols-3 gap-3 text-center">
+    <div class="rounded-2xl border-2 border-ink bg-surface p-4">
+      <p class="text-4xl font-black tabular-nums text-win">{{ h2h.wins }}</p>
+      <p class="truncate text-sm font-bold text-muted">{{ a }} won</p>
+    </div>
+    <div class="rounded-2xl border-2 border-line bg-surface p-4">
+      <p class="text-4xl font-black tabular-nums text-draw">{{ h2h.draws }}</p>
+      <p class="text-sm font-bold text-muted">Drawn</p>
+    </div>
+    <div class="rounded-2xl border-2 border-ink bg-surface p-4">
+      <p class="text-4xl font-black tabular-nums text-loss">{{ h2h.losses }}</p>
+      <p class="truncate text-sm font-bold text-muted">{{ b }} won</p>
+    </div>
+  </div>
+  {% set labels = {"win": (a ~ " won", "bg-win"), "draw": ("Draw", "bg-draw"), "loss": (b ~ " won", "bg-loss")} %}
+  <ol class="mt-4 divide-y-2 divide-line rounded-2xl border-2 border-line bg-surface px-4">
+    {% for m in h2h.recent %}
+    {% set label, chip = labels[m.outcome] %}
+    <li class="flex items-center gap-3 py-3">
+      <span class="size-3 shrink-0 rounded-full {{ chip }}" aria-hidden="true"></span>
+      <span class="min-w-0 flex-1 truncate font-bold">{{ label }}</span>
+      <span class="text-sm capitalize text-muted">{{ m.time_class }}{% if m.end_time %} · {{ m.end_time|date_short }}{% endif %}</span>
+      {% if m.url.startswith("https://") %}
+      <a href="{{ m.url }}" rel="noopener" class="text-sm font-bold text-accent hover:underline">Game ↗</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endif %}

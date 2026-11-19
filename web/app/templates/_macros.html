@@ -73,17 +73,29 @@
 <span class="rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-bold {{ classes }}">{{ text }}</span>
 {% endmacro %}
 
-{# The openings section while it loads; htmx fetches `url` and replaces the whole section. #}
-{% macro openings_loading(url, delay=0) %}
-<section id="openings" aria-labelledby="openings-heading" aria-busy="true"
+{# A section built from recent games while it loads; htmx fetches `url` and replaces it. #}
+{% macro deferred_section(id, url, delay=0, heading=None, note="Reading recent games from chess.com…") %}
+<section id="{{ id }}"{% if heading %} aria-labelledby="{{ id }}-heading"{% endif %} aria-busy="true"
          hx-get="{{ url }}" hx-trigger="load{% if delay %} delay:{{ delay }}s{% endif %}" hx-swap="outerHTML">
-  <h2 id="openings-heading" class="mb-4 mt-12 text-2xl font-black tracking-tight">Openings</h2>
+  {% if heading %}<h2 id="{{ id }}-heading" class="mb-4 mt-12 text-2xl font-black tracking-tight">{{ heading }}</h2>{% endif %}
   <div class="flex items-center gap-3 rounded-2xl border-2 border-line bg-surface p-5 text-muted">
     <span class="size-3 animate-pulse rounded-full bg-accent" aria-hidden="true"></span>
-    {{ "Busy right now, trying again in a moment…" if delay else "Reading recent games from chess.com…" }}
+    {{ "Busy right now, trying again in a moment…" if delay else note }}
   </div>
-  <noscript><p class="mt-2 text-sm text-muted">Opening stats need JavaScript.</p></noscript>
+  <noscript><p class="mt-2 text-sm text-muted">This section needs JavaScript.</p></noscript>
 </section>
+{% endmacro %}
+
+{# Buttons to share a page and its image (see app.js). #}
+{% macro share_bar(image_url, filename) %}
+{% set button = "rounded-xl border-2 border-ink bg-surface px-4 py-2 text-sm font-bold hover:bg-accent hover:text-accent-ink" %}
+<div data-share data-image="{{ image_url }}" class="mt-6 flex flex-wrap items-center gap-2">
+  <button type="button" data-share-native hidden class="{{ button }}">Share</button>
+  <button type="button" data-share-copy-image class="{{ button }}">Copy image</button>
+  <a href="{{ image_url }}" download="{{ filename }}" class="{{ button }}">Download image</a>
+  <button type="button" data-share-copy-link class="{{ button }}">Copy link</button>
+  <span data-share-status role="status" class="text-sm font-semibold text-muted"></span>
+</div>
 {% endmacro %}
 
 {% macro trend(change, unit) %}

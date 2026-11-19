@@ -1,5 +1,5 @@
-{# The openings section of the player page, swapped in by htmx (see openings_loading). #}
-{% from "_macros.html" import openings_loading %}
+{# The openings section of the player page, swapped in by htmx (see deferred_section). #}
+{% from "_macros.html" import deferred_section %}
 
 {% macro wdl_bar(s) %}
 <div class="flex h-2 overflow-hidden rounded-full bg-surface-2" role="img"
@@ -35,7 +35,7 @@
 {% endmacro %}
 
 {% if retry_url %}
-{{ openings_loading(retry_url, retry_delay) }}
+{{ deferred_section("openings", retry_url, retry_delay, heading="Openings") }}
 {% else %}
 <section id="openings" aria-labelledby="openings-heading">
   <h2 id="openings-heading" class="mb-1 mt-12 text-2xl font-black tracking-tight">Openings</h2>

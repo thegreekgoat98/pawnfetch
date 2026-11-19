@@ -123,7 +123,7 @@ def mock_games(months_with_games=(8, 9, 10)):
 def test_openings_use_newest_months_until_enough_games(monkeypatch):
     import web.app.service as service_module
 
-    monkeypatch.setattr(service_module, "OPENINGS_GAMES", 15)  # each month has 11 games
+    monkeypatch.setattr(service_module, "RECENT_GAMES", 15)  # each month has 11 games
     routes = mock_games()
     service = PlayerService(ChessComClient())
 

@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}pawnfetch — chess.com stats, fast{% endblock %}</title>
   <meta name="description" content="Look up and compare chess.com players: ratings, records, leaderboards, live streamers and chess puzzles.">
+  {# Link previews (Discord, X, WhatsApp, LinkedIn...). Pages override the og_* blocks. #}
+  <meta property="og:site_name" content="pawnfetch">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:title" content="{% block og_title %}pawnfetch — chess.com stats, roasts and rivalries{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Look up any chess.com player, roast your friends, settle rivalries, solve puzzles and see who's streaming.{% endblock %}">
+  <meta property="og:image" content="{{ request.base_url }}{% block og_image %}og/default.png{% endblock %}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="color-scheme" content="dark light">
   <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
   <script>try{var t=localStorage.getItem("pf-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -16,8 +26,8 @@
 <body class="flex min-h-screen flex-col bg-bg font-sans text-ink antialiased">
   {% set path = request.url.path %}
   {% set nav = [
-    ("Search", "/", "bg-accent", path == "/" or path.startswith("/search") or path.startswith("/player/")),
-    ("Compare", "/compare", "bg-blitz", path.startswith("/compare")),
+    ("Search", "/", "bg-accent", path == "/" or path.startswith("/search") or path.startswith("/player/") or path.startswith("/roast")),
+    ("Compare", "/compare", "bg-blitz", path.startswith("/compare") or path.startswith("/vs/")),
     ("Leaderboards", "/leaderboards", "bg-daily", path.startswith("/leaderboards")),
     ("Puzzles", "/puzzles", "bg-rapid", path.startswith("/puzzle")),
     ("Streamers", "/streamers", "bg-loss", path.startswith("/streamers")),

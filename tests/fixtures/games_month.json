@@ -21,9 +21,9 @@
         "@id": "y",
         "uuid": "b"
       },
-      "pgn": "[Event \"Live Chess\"] ...",
+      "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[UTCDate \"2026.10.27\"]\n[UTCTime \"17:46:40\"]\n[TimeControl \"180\"]\n\n1. e4 {[%clk 0:03:00]} 1... e5 {[%clk 0:03:00]} 2. Nf3 {[%clk 0:02:59]} 1-0\n",
       "tcn": "mC0K",
-      "fen": "8/8/8/8/8/8/8/8 w - -",
+      "fen": "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 5 24",
       "uuid": "u1",
       "initial_setup": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       "eco": "https://www.chess.com/openings/Italian-Game-Two-Knights-Defense-4.d4"
