@@ -25,7 +25,9 @@
       <span class="hidden rounded-lg bg-accent px-2.5 py-1 text-xs font-black uppercase tracking-wide text-accent-ink sm:inline">Roasted</span>
     </div>
 
-    <p class="mt-7 text-xs font-bold uppercase tracking-wide text-muted">Chess persona</p>
+    <p class="mt-7 text-xs font-bold uppercase tracking-wide text-muted">
+      Chess persona · <span class="{{ 'text-accent' if roast.source == 'ai' else '' }}">{{ "AI roast" if roast.source == "ai" else "Classic roast" }}</span>
+    </p>
     <h2 class="text-3xl font-black tracking-tight text-accent sm:text-4xl">{{ roast.persona }}</h2>
 
     <ul class="mt-6 space-y-3">

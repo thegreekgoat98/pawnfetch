@@ -99,6 +99,14 @@ It's written to `data/puzzles.sqlite`, or to the path in the `PUZZLES_DB` enviro
 Share images (link previews for roasts and `/vs` pages) are drawn with Pillow using the
 [Inter](https://rsms.me/inter/) font in `web/app/fonts/` (SIL Open Font License).
 
+Roasts are AI-written by Google Gemini when `GEMINI_API_KEY` is set (optional:
+`GEMINI_MODEL`, a comma-separated list of models tried in order when one is overloaded, and
+`ROAST_AI_DAILY_CAP`, default 10 new AI roasts per day, and `ROAST_AI_CONCURRENCY`, default 4
+calls at once). Without a key,
+or when a call fails or the cap is reached, the rule-based roast is used. Only computed
+numbers and the username are sent. Roasts and the daily counter are stored in
+`data/app.sqlite`, or the path in `APP_DB`.
+
 ## Disclaimer
 
 pawnfetch is an independent project and is not affiliated with or endorsed by Chess.com.

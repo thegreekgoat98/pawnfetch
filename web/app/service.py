@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
+import os
+import sqlite3
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TypeVar
 
 from pawnfetch.chesscom.client import ChessComClient, PlayerNotFoundError
@@ -14,9 +17,11 @@ from pawnfetch.chesscom.models import (
     Streamer,
 )
 from web.app.cache import TTLCache
+from web.app.llm import GeminiWriter
 from web.app.openings import OpeningsSummary, summarize
 from web.app.rivals import HeadToHead, Meeting, head_to_head, index_meetings
 from web.app.roast import Roast, build_roast
+from web.app.store import AppStore
 
 PLAYER_TTL = 15 * 60
 NOT_FOUND_TTL = 60
@@ -28,6 +33,17 @@ GAMES_TTL = 30 * 60
 # games (2-3 MB) in a month.
 RECENT_GAMES = 300
 RECENT_MONTHS = 3
+# A stored AI roast is kept a day; a rule-based one only an hour, so it can be upgraded to an
+# AI roast later (after a failure, or once the daily cap resets).
+AI_ROAST_TTL = 24 * 60 * 60
+RULES_ROAST_TTL = 60 * 60
+AI_DAILY_CAP = int(os.environ.get("ROAST_AI_DAILY_CAP", "10"))
+# AI calls are network waits, not CPU work, so a few can run side by side. When all slots are
+# taken, a visitor waits up to AI_WAIT seconds for one, then gets the classic roast.
+AI_CONCURRENCY = int(os.environ.get("ROAST_AI_CONCURRENCY", "4"))
+AI_WAIT = 8.0
+
+log = logging.getLogger("pawnfetch.service")
 
 T = TypeVar("T")
 
@@ -62,8 +78,18 @@ class PlayerService:
         cache: TTLCache | None = None,
         ttl: float = PLAYER_TTL,
         not_found_ttl: float = NOT_FOUND_TTL,
+        store: AppStore | None = None,
+        writer: GeminiWriter | None = None,
+        ai_daily_cap: int = AI_DAILY_CAP,
+        ai_concurrency: int = AI_CONCURRENCY,
+        ai_wait: float = AI_WAIT,
     ):
         self._client = client or ChessComClient()
+        self._store = store or AppStore()
+        self._writer = writer or GeminiWriter.from_env()  # None: AI roasts are off
+        self._ai_daily_cap = ai_daily_cap
+        self._ai_wait = ai_wait
+        self._llm = threading.BoundedSemaphore(max(1, ai_concurrency))
         self._cache = cache or TTLCache()
         self._ttl = ttl
         self._not_found_ttl = not_found_ttl
@@ -107,7 +133,41 @@ class PlayerService:
         return self._insights(username).openings
 
     def get_roast(self, username: str) -> Roast | None:
-        return self._insights(username).roast
+        """The stored roast if it's fresh; otherwise a new one (AI-written when possible)."""
+        name = username.strip().lower()
+        stored = self._safely(self._store.load_roast, name)
+        if stored is not None:
+            ttl = AI_ROAST_TTL if stored.source == "ai" else RULES_ROAST_TTL
+            if self._store.clock() - stored.created < ttl:
+                return stored
+        roast = self._insights(name).roast
+        if roast is None:
+            return None
+        if self._writer is not None:
+            if not self._llm.acquire(timeout=self._ai_wait):
+                return roast  # too many at once: classic roast now, not stored, so AI can try next visit
+            try:
+                roast = self._ai_roast(name, roast)
+            finally:
+                self._llm.release()
+        return self._safely(self._store.save_roast, name, roast) or roast
+
+    def _ai_roast(self, name: str, roast: Roast) -> Roast:
+        if not self._safely(self._store.use_ai, self._ai_daily_cap):
+            return roast  # daily cap reached (or the store is unavailable)
+        text = self._writer.write(name, roast)  # type: ignore[union-attr]
+        if text is None:
+            return roast
+        return replace(roast, persona=text.persona, lines=list(text.lines), source="ai")
+
+    @staticmethod
+    def _safely(call: Callable[..., T], *args: object) -> T | None:
+        """Run a store call; a broken database file shouldn't take roasts down with it."""
+        try:
+            return call(*args)
+        except sqlite3.Error:
+            log.exception("app database unavailable")
+            return None
 
     def get_head_to_head(self, username: str, opponent: str) -> HeadToHead:
         """`username`'s record against `opponent`, from `username`'s recent games."""

@@ -245,16 +245,17 @@ def create_app(service: PlayerService | None = None, puzzles: PuzzleBank | None 
     def og_roast(username: str) -> Response:
         valid(username)
         name = username.lower()
-        key = f"roast:{name}"
+        try:
+            profile = player_service.get_player(name).profile
+            found = player_service.get_roast(name)  # cheap once stored
+        except (ChessComError, ServiceBusyError):
+            return png(default_image(), FALLBACK_IMAGE_TTL)
+        if found is None:
+            return png(default_image(), FALLBACK_IMAGE_TTL)
+        # Keyed by when the roast was stored, so a newer roast gets a newer image.
+        key = f"roast:{name}:{found.source}:{found.created}"
         image = images.get(key)
         if image is None:
-            try:
-                profile = player_service.get_player(name).profile
-                found = player_service.get_roast(name)
-            except (ChessComError, ServiceBusyError):
-                return png(default_image(), FALLBACK_IMAGE_TTL)
-            if found is None:
-                return png(default_image(), FALLBACK_IMAGE_TTL)
             image = cards.roast_card(profile, found)
             images.set(key, image, IMAGE_TTL)
         return png(image)  # type: ignore[arg-type]

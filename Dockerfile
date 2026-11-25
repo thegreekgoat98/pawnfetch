@@ -21,9 +21,10 @@ RUN useradd --create-home app \
     && mkdir /data && chown app /data
 USER app
 
-# The puzzle database lives on a volume mounted here (see web/app/puzzles.py).
+# The puzzle database and app.sqlite (stored roasts, AI usage) live on a volume mounted here.
 ENV PATH="/app/.venv/bin:$PATH" \
-    PUZZLES_DB=/data/puzzles.sqlite
+    PUZZLES_DB=/data/puzzles.sqlite \
+    APP_DB=/data/app.sqlite
 EXPOSE 8000
 
 CMD ["uvicorn", "web.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
